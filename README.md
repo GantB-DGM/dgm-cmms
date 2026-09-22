@@ -31,6 +31,22 @@ All people, vendors, and figures in the prototype are sample data.
 
 **Optional modules** (keep or cut after stakeholder review): compliance dates, equipment with QR labels, kitchens, recurring vendor services.
 
+**Admin (Settings)**, built so a non-IT admin can run the app:
+- System health and a delivery log with Resend
+- People and roles managed in the app (no Entra portal), and "Check a person" with site overrides
+- Sites read from the IR Sites list, with one editor per field. Maintenance keeps its own Locations list, with bulk-add for units.
+- Categories and waiting reasons
+- Notification rules, and message wording with a live preview
+- Form wording
+- Response targets
+- Module on/off switches
+- An announcement banner
+- Help articles and "What's new"
+- Test data, archiving, and Excel import and export
+- An audit log, plus settings history with undo
+- Bulk actions and merging duplicates on requests
+- Full vendor management
+
 **Ideas** (not planned; each shows a rough build cost in the prototype): warranty tracking, vendor insurance, owner vs. DGM responsibility, charging costs to funding sources, unit turnover checklists, repeat-problem flags, site emergency info, checks done by site staff.
 
 ## Planned architecture
