@@ -27,6 +27,9 @@ All people, vendors, and figures in the prototype are sample data.
 - SharePoint can't hide individual columns, so costs, internal notes, and vendor contacts live in separate lists that staff can't read. Site scoping is done by the app, so staff can technically read other sites' requests. That's a known trade-off: as with IR, a provisioning script hides every list from site navigation and search.
 - Operations assigns vendors, books site visits, records costs, and closes requests. The app never contacts vendors.
 - Each notification can go by any mix of Teams channel post, Teams chat, and email. Admins configure this in Settings.
+- **Built for phones first**: cards instead of tables, large tap targets, and a floating "Report a problem" button. Unfinished reports auto-save on the device.
+- **On-target rate** on the Overview: the share of requests with a vendor on site within the target, by priority and site, plus average days to complete.
+- **Invoices and after photos**: attach the vendor's invoice PDF to a cost line (managers only), and add photos of the finished work.
 - **Add to my calendar**: any booked vendor visit (or all upcoming visits) can be saved as an Outlook calendar file (`.ics`), built in the browser with no flow.
 
 **Optional modules** (keep or cut after stakeholder review): compliance dates, equipment with QR labels, kitchens, recurring vendor services.

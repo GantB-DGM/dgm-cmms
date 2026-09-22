@@ -558,6 +558,38 @@ svg.i{width:16px;height:16px;flex-shrink:0;}
 .sel-bar .btn{background:transparent;color:var(--card);border-color:rgba(255,255,255,.35);}
 .sel-bar .fsel{background:transparent;color:var(--card);border-color:rgba(255,255,255,.35);}
 .test-pill{background:#ede7f6;color:#5b3fa8;border:1px solid #c9b8ef;}
+
+/* ── Mobile ── */
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.demo-more{display:none;background:transparent;border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:5px 10px;font-size:12px;}
+.fab{display:none;}
+@media (max-width:640px){
+  .demo-bar{gap:8px 10px;}
+  .demo-more{display:inline-flex;align-items:center;gap:4px;margin-left:auto;}
+  .demo-bar:not(.open) .demo-group:not(.keep),.demo-bar:not(.open) .demo-check{display:none;}
+  .demo-group.keep label{display:none;}
+  .demo-group.keep .demo-select{max-width:210px;}
+  .input,.select,.textarea,.fsel,.search input,.mini-input{font-size:16px!important;}
+  .fab{display:inline-flex;position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:150;align-items:center;gap:8px;border:0;border-radius:28px;min-height:52px;padding:0 20px;background:var(--btn);color:#fff;font-size:15px;font-weight:500;box-shadow:var(--shadow);}
+  .fab svg{width:18px;height:18px;}
+  .page{padding-bottom:110px;}
+  .modal-wrap{align-items:flex-end;padding:0;}
+  .modal{border-radius:14px 14px 0 0;max-height:92vh;width:100%;}
+  .modal-foot{border-radius:0;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));}
+  .table.rq,.table.rq tbody{display:block;}
+  .table.rq thead{display:none;}
+  .table.rq tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;padding:12px 14px 12px 0;border-bottom:1px solid var(--rule2);}
+  .table.rq td{display:block;padding:0;border:0;min-width:0;}
+  .table.rq td.t-main{grid-column:1 / -1;}
+  .table.rq td:nth-child(odd):not(.t-main){text-align:right;}
+  .table.rq td[data-hide-m]{display:none;}
+  .table.rq td:not(.t-main){padding-left:16px;}
+  .sel-bar{bottom:calc(80px + env(safe-area-inset-bottom,0px));}
+}
+@media (pointer:coarse){
+  .btn{min-height:44px;} .btn-sm{min-height:38px;} .chip{min-height:38px;} .nav-tab{min-height:48px;} .ch{min-height:36px;}
+  .link{padding:6px 0;}
+}
 @media (max-width:560px){.cal-add span{display:none;}}
 </style>
 </head>
@@ -566,7 +598,7 @@ svg.i{width:16px;height:16px;flex-shrink:0;}
 <!-- ═════════ Prototype controls (not part of the product) ═════════ -->
 <div class="demo-bar" role="region" aria-label="Prototype controls">
   <span class="demo-tag"><span class="demo-dot"></span>PROTOTYPE</span>
-  <div class="demo-group">
+  <div class="demo-group keep">
     <label for="roleSel">View as</label>
     <select id="roleSel" class="demo-select">
       <option value="staff">Staff / Team Lead — Jordan Reyes</option>
@@ -576,6 +608,7 @@ svg.i{width:16px;height:16px;flex-shrink:0;}
       <option value="admin">Admin — Pat Kim</option>
     </select>
   </div>
+  <button type="button" class="demo-more" id="demoMore" aria-expanded="false" onclick="toggleDemo()">Demo controls ▾</button>
   <div class="demo-group"><label>Host</label>
     <span class="seg" id="hostSeg"><button type="button" data-host="sp" aria-pressed="true">SharePoint</button><button type="button" data-host="teams" aria-pressed="false">Teams</button></span>
   </div>
@@ -620,6 +653,7 @@ svg.i{width:16px;height:16px;flex-shrink:0;}
 <div class="scrim" id="scrim"></div>
 <aside class="panel" id="panel" aria-hidden="true" aria-label="Details"></aside>
 <div id="modalRoot"></div>
+<button type="button" class="fab" id="fab" onclick="go('report')" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Report a problem</button>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="tip" id="tip" hidden></div>
 
@@ -1450,8 +1484,11 @@ const onAfter = fn => AFTER.push(fn);
 function render(){
   renderChrome(); renderNav();
   $('announce').innerHTML = announceHtml();
+  $('fab').hidden = state.tab === 'report';
   $('main').innerHTML = VIEWS[state.tab]();
   AFTER.splice(0).forEach(fn => fn());
+  document.querySelector('.nav-tab.active')?.scrollIntoView?.({ block:'nearest', inline:'nearest' });
+  document.querySelector('.set-nav [aria-current="true"]')?.scrollIntoView?.({ block:'nearest', inline:'nearest' });
 }
 function go(tab){ state.tab = tab; closePanel(); render(); window.scrollTo(0, 0); }
 function refresh(){ const y = window.scrollY; render(); window.scrollTo(0, y); if (state.panel) reopenPanel(); }
@@ -1482,9 +1519,9 @@ function visitLi({ r, v, t }){
 
 /* ── Charts ── */
 function niceMax(v){ if (v <= 5) return 5; const p = Math.pow(10, Math.floor(Math.log10(v))); const n = v / p; return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p; }
-function hbars(rows, fmt, onclick){
+function hbars(rows, fmt, onclick, cap){
   if (!rows.length) return `<div class="empty">Nothing to show.</div>`;
-  const max = Math.max(...rows.map(r => r.v));
+  const max = cap || Math.max(...rows.map(r => r.v));
   return `<div class="hbar">${rows.map(r => `
     <div class="hbar-row-btn" ${onclick ? `role="button" tabindex="0" onclick="${onclick(r)}" onkeydown="if(event.key==='Enter')this.click()"` : 'tabindex="0"'} data-tip="${esc(r.tip)}">
       <div class="hbar-label">${esc(r.label)}</div>
@@ -1523,6 +1560,7 @@ function renderOverview(){
   const late = open.filter(isLate), fresh = open.filter(r => r.status === 'new'), emer = open.filter(r => r.pri === 'emergency');
   const oldestNew = fresh.slice().sort((a, b) => d(a.at) - d(b.at))[0];
   const spend = spendInScope();
+  const rsStats = responseStats(rs);
   const compSoon = modOn('compliance') ? COMPLIANCE.filter(c => compInScope(c) && daysFromToday(d(c.due)) <= 30) : [];
   const tile = (o) => `<button type="button" class="tile ${o.cls || ''}" onclick="${o.go}"><div class="tile-label">${o.label}</div><div class="tile-val">${o.val}</div><div class="tile-sub">${o.sub}</div></button>`;
   const attention = open.filter(r => r.pri === 'emergency' || isLate(r) || r.status === 'new')
@@ -1544,6 +1582,7 @@ function renderOverview(){
       ${tile({ label:'Open requests', val: open.length, sub: `${emer.length} emergency · ${open.filter(r => r.pri === 'urgent').length} urgent`, go:"setRq('open')" })}
       ${tile({ label:'New, not yet reviewed', val: fresh.length, cls: fresh.length ? 'is-amber' : '', sub: oldestNew ? `Oldest submitted ${ago(d(oldestNew.at))}` : 'All caught up', go:"setRq('new')" })}
       ${tile({ label:'Past response target', val: late.length, cls: late.length ? 'is-warn' : '', sub: 'Targets: 4 hrs · 2 days · 14 days', go:"setRq('late')" })}
+      ${tile({ label:'On target', val: rsStats.n ? rsStats.pct + '%' : '—', cls: rsStats.n && rsStats.pct < 80 ? 'is-amber' : '', sub: `${rsStats.ok} of ${rsStats.n} had a vendor on site in time`, go:"document.getElementById('respCard').scrollIntoView({behavior:'smooth'})" })}
       ${tile({ label:'Spent since July 1', val: money(Math.round(spend.total)), sub: 'Vendor invoices on requests', go: canManage() ? "go('vendors')" : "setRq('done')" })}
       ${modOn('compliance') ? tile({ label:`Compliance due ≤ 30 days ${optBadge()}`, val: compSoon.length, cls: compSoon.some(c => daysFromToday(d(c.due)) < 0) ? 'is-warn' : 'is-amber', sub: `${compSoon.filter(c => daysFromToday(d(c.due)) < 0).length} overdue`, go:"go('compliance')" }) : ''}
     </div>
@@ -1559,6 +1598,7 @@ function renderOverview(){
       <section class="card"><div class="card-head"><h2 class="card-title">Opened vs. completed</h2><span class="card-sub">Per week, last 12 weeks</span></div>
         ${lineChart([{ name:'Opened', color:'var(--s1)', values: opened }, { name:'Completed', color:'var(--s2)', values: closed }], WEEKS.map(w => fmtD(w)), i => `Week ending ${fmtD(WEEKS[i])}`)}</section>
     </div>
+    ${responseCard(rsStats)}
     <div class="grid g-2">
       <section class="card"><div class="card-head"><h2 class="card-title">Spending since July 1, by category</h2><span class="card-sub">${money(Math.round(spend.total))} total</span></div>
         ${hbars(spendRows, v => money(v))}</section>
@@ -1644,13 +1684,13 @@ function mergeModal(){ const ids = [...state.sel].filter(id => REQ[id]).sort((a,
 function rqTableHtml(){
   const rs = rqFiltered();
   if (!rs.length) return `<div class="table-wrap"><div class="empty">No requests match. Try another view or clear the search.</div></div>`;
-  return `<div class="table-wrap"><table class="table">
+  return `<div class="table-wrap"><table class="table rq">
     <thead><tr>${canManage() ? `<th style="width:34px"><input type="checkbox" aria-label="Select all shown" ${rs.length && rs.every(r => state.sel.has(r.id)) ? 'checked' : ''} onchange="selAll(this.checked)"></th>` : ''}<th>Request</th><th>Where</th><th>Status</th><th>Vendor</th><th>Next visit / target</th><th>Submitted</th></tr></thead>
     <tbody>${rs.map(r => {
       const nv = nextVisit(r), t = targetOf(r);
       const when = r.status === 'done' ? `Done ${fmtD(d(r.done))}` : nv ? `${WD[nv.getDay()]} ${fmtD(nv)}, ${fmtT(nv)}` : t && OPEN.includes(r.status) ? `<span class="${isLate(r) ? 'late' : ''}">${isLate(r) ? 'Past target' : 'Respond by ' + fmtD(t)}</span>` : '—';
       return `<tr class="click" tabindex="0" onclick="openReq('${r.id}')" onkeydown="if(event.key==='Enter')openReq('${r.id}')">
-        ${canManage() ? `<td onclick="event.stopPropagation()"><input type="checkbox" aria-label="Select ${r.id}" ${state.sel.has(r.id) ? 'checked' : ''} onchange="selOne('${r.id}',this.checked)"></td>` : ''}
+        ${canManage() ? `<td data-hide-m onclick="event.stopPropagation()"><input type="checkbox" aria-label="Select ${r.id}" ${state.sel.has(r.id) ? 'checked' : ''} onchange="selOne('${r.id}',this.checked)"></td>` : ''}
         <td class="t-main pri-cell pr-${r.pri}">${esc(r.title)}<span class="sub"><span class="mono">${r.id}</span> · ${PRI[r.pri].label} · ${esc(catLabel(r.cat))}${r.src !== 'request' ? ' · ' + (r.src === 'recurring' ? 'Recurring' : 'Compliance') : ''}${ideasOn() && repeatsFor(r).length ? ` · <span class="late">Repeat</span>` : ''}${ideasOn() && landlordFor(r) ? ' · Owner’s responsibility' : ''}${r.test ? ' · <span class="pill test-pill">Test</span>' : ''}</span></td>
         <td>${esc(siteName(r.site))}<span class="sub">${esc(r.loc)}</span></td>
         <td>${statusPill(r)}${r.status === 'waiting' && r.wait ? `<span class="sub">${esc(r.wait)}</span>` : ''}</td>
@@ -1722,7 +1762,7 @@ function openReq(id, keep){
 
     <section class="psec"><div class="psec-head"><h3 class="section-label">What's wrong</h3></div>
       <p class="desc">${esc(r.desc)}</p>
-      ${r.ph ? `<div class="photos">${Array.from({ length:r.ph }, (_, i) => `<div class="photo">${ic('camera')}photo-${i + 1}.jpg</div>`).join('')}</div>` : ''}
+      ${photoBlock(r, manage)}
       <dl class="kv" style="margin-top:14px">
         <dt>Submitted</dt><dd>${esc(r.by)} · ${fmtDT(d(r.at))}</dd>
         ${r.src === 'request' ? `<dt>Contact</dt><dd>${esc(emailOf(r.by))}</dd>` : ''}
@@ -1767,12 +1807,13 @@ function openReq(id, keep){
     </section>
 
     ${isMgr ? `<section class="psec"><div class="psec-head"><h3 class="section-label">Costs</h3><span class="tnum" style="font-weight:500">${money(costTotal)}</span></div>
-      ${r.c.length ? r.c.map(c => `<div class="cost-row"><span>${esc(c.what)} <span class="muted">· invoice ${esc(c.inv)}</span>${ideasOn() ? ` <span class="tag">${esc(fundOf(r, c))}</span>` : ''}</span><span class="tnum">${money(c.amt)}</span></div>`).join('') : `<div class="muted" style="font-size:13px">No costs recorded.</div>`}
+      ${r.c.length ? r.c.map(c => `<div class="cost-row"><span>${esc(c.what)} <span class="muted">· invoice ${esc(c.inv)}</span>${ideasOn() ? ` <span class="tag">${esc(fundOf(r, c))}</span>` : ''}${c.file ? ` <button type="button" class="link" onclick="openFile('${esc(c.file)}')">${ic('doc')} ${esc(c.file)}</button>` : ''}</span><span class="tnum">${money(c.amt)}</span></div>`).join('') : `<div class="muted" style="font-size:13px">No costs recorded.</div>`}
       ${manage ? `<button type="button" class="btn btn-sm" style="margin-top:10px" onclick="toggleEl('costForm')">${ic('dollar')}Add cost</button>
         <div class="inline-form" id="costForm" hidden>
           <label class="field"><span class="field-label">Description</span><input class="input" id="cWhat" placeholder="e.g. Replace heater element"></label>
           <div class="row-2"><label class="field"><span class="field-label">Amount ($)</span><input class="input" id="cAmt" type="number" min="0" step="0.01" placeholder="0.00"></label>
             <label class="field"><span class="field-label">Invoice #</span><input class="input" id="cInv" placeholder="Optional"></label></div>
+          <div class="btn-row"><button type="button" class="btn btn-sm" onclick="attachInvoice()">${ic('doc')}Attach invoice PDF</button><span class="card-sub" id="cFileName">${state.costFile ? esc(state.costFile) : 'No file attached'}</span></div>
           ${ideasOn() ? `<label class="field"><span class="field-label">Charge to ${ideaBadge()}</span><select class="select" id="cFund">${FUNDS.map(x => `<option${x === SITE_IDEA[r.site]?.fund ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select></label>` : ''}
           <div class="btn-row"><button type="button" class="btn btn-primary btn-sm" onclick="addCost('${r.id}')">Add cost</button></div></div>` : ''}
     </section>` : ''}
@@ -1822,7 +1863,7 @@ function visitDone(id, i){ const r = REQ[id]; explain('visitDone', {}, () => { r
 function addCost(id){
   const r = REQ[id], amt = parseFloat($('cAmt').value);
   if (!(amt >= 0)){ $('cAmt').focus(); return; }
-  const c = { what: $('cWhat').value.trim() || 'Vendor invoice', amt, inv: $('cInv').value.trim() || '—', added:true, fund: $('cFund')?.value || undefined };
+  const c = { what: $('cWhat').value.trim() || 'Vendor invoice', amt, inv: $('cInv').value.trim() || '—', added:true, fund: $('cFund')?.value || undefined, file: state.costFile || undefined }; state.costFile = null;
   explain('cost', {}, () => { r.c.push(c); logEv(r, 'dollar', `Cost added: ${esc(c.what)} · ${money(c.amt)} · invoice ${esc(c.inv)}`); refresh(); });
 }
 function setStatus(id, to){
@@ -1912,7 +1953,7 @@ const SETTINGS = {
 function newForm(){ return { site: me().home, loc:'', asset:'', cat:'', danger:null, usable:null, title:'', desc:'', access:'', ir:'', photos:0, errors:[], submitted:null }; }
 function formPri(f){ return f.danger === true ? 'emergency' : f.danger === false && f.usable === false ? 'urgent' : f.danger === false && f.usable === true ? 'routine' : null; }
 function renderReport(){
-  const f = state.form ||= newForm();
+  const f = state.form ||= restoreDraft() || newForm();
   if (f.submitted) return renderSubmitted(REQ[f.submitted]);
   const allowed = reportSites();
   if (!allowed.length) return noSiteNotice();
@@ -1922,10 +1963,12 @@ function renderReport(){
   const siteAssets = modOn('equipment') ? ASSETS.filter(a => a.site === f.site) : [];
   const yn = (key, val, label, danger) => `<button type="button" class="${danger ? 'danger' : ''}" aria-pressed="${f[key] === val}" onclick="state.form.${key}=${val};${key === 'danger' ? 'state.form.usable=null;' : ''}render()">${label}</button>`;
   const err = k => f.errors.includes(k) ? ' style="border-color:var(--warn)"' : '';
+  saveDraft(true);
   return `<div class="page page-sm">
     <div class="page-head"><div><h1 class="page-title">Report a problem</h1><div class="page-sub">${esc(FORM_TEXT.sub)}</div></div></div>
+    ${f.restored ? `<div class="note" style="margin-bottom:14px">${ic('info')}<span>We kept your unfinished report from ${fmtDT(d(f.restored))}. <button type="button" class="link" onclick="discardDraft()">Start over</button></span></div>` : ''}
     ${f.moved ? `<div class="note amber" style="margin-bottom:14px">${ic('info')}<span>You can report problems only for your own site, so this form is set to ${esc(s.name)}. For ${esc(f.moved)}, let that site’s staff or Operations know.</span></div>` : ''}
-    ${bn('<b>Report a problem</b> · creates a <b>MaintenanceRequests</b> item. SPFx fills in the requester from the M365 profile, the site from the profile’s office location (same as IR, but no coverage mode: staff report only for their own site, and on-call staff can’t submit), the priority from the answers below, and <b>TargetAt</b>. Then it queues notifications per the rules. The relay flow only sends them.')}
+    ${bn('<b>Report a problem</b> · creates a <b>MaintenanceRequests</b> item. SPFx fills in the requester from the M365 profile, the site from the profile’s office location (same as IR, but no coverage mode: staff report only for their own site, and on-call staff can’t submit), the priority from the answers below, and <b>TargetAt</b>. Then it queues notifications per the rules. The relay flow only sends them. Unfinished reports save automatically in the browser, like IR’s drafts (photos aren’t kept).')}
 
     <section class="form-sec"><div class="form-sec-head"><span class="step-n">1</span><h2 class="form-sec-title">Where is it?</h2></div>
       <div class="form-grid">
@@ -1966,24 +2009,25 @@ function renderReport(){
     <section class="form-sec"><div class="form-sec-head"><span class="step-n">4</span><h2 class="form-sec-title">Details</h2></div>
       <div style="display:flex;flex-direction:column;gap:14px">
         <label class="field"><span class="field-label">Short summary <span class="req">*</span></span>
-          <input class="input" id="fTitle"${err('title')} maxlength="80" placeholder="e.g. No hot water in the hygiene trailer" value="${esc(f.title)}" oninput="state.form.title=this.value"></label>
+          <input class="input" id="fTitle"${err('title')} maxlength="80" placeholder="e.g. No hot water in the hygiene trailer" value="${esc(f.title)}" oninput="state.form.title=this.value;saveDraft()"></label>
         <label class="field"><span class="field-label">What’s happening? <span class="req">*</span></span>
-          <textarea class="textarea" id="fDesc"${err('desc')} placeholder="What you noticed, when it started, and anything you’ve already tried" oninput="state.form.desc=this.value">${esc(f.desc)}</textarea></label>
+          <textarea class="textarea" id="fDesc"${err('desc')} placeholder="What you noticed, when it started, and anything you’ve already tried" oninput="state.form.desc=this.value;saveDraft()">${esc(f.desc)}</textarea></label>
         <div class="field"><span class="field-label">Photos <span class="muted" style="font-weight:400">(optional, up to 5)</span></span>
           <div class="upload"><button type="button" class="btn" onclick="explain('photo',{},()=>{state.form.photos=Math.min(5,state.form.photos+1);render()})">${ic('camera')}Add photo</button>
             <span class="field-hint">On a phone, this opens your camera.</span>
             ${f.photos ? `<div class="photos" style="margin:0">${Array.from({ length:f.photos }, (_, i) => `<div class="photo">${ic('camera')}photo-${i + 1}.jpg</div>`).join('')}</div>` : ''}</div></div>
         <label class="field"><span class="field-label">Access notes for the vendor <span class="muted" style="font-weight:400">(optional)</span></span>
-          <input class="input" id="fAccess" placeholder="${esc(FORM_TEXT.access)}" value="${esc(f.access)}" oninput="state.form.access=this.value">
+          <input class="input" id="fAccess" placeholder="${esc(FORM_TEXT.access)}" value="${esc(f.access)}" oninput="state.form.access=this.value;saveDraft()">
           ${isUnit(f.loc) ? `<span class="field-hint">${ic('lock')} This is inside a resident’s unit. Your PM is reminded to give entry notice before any visit.</span>` : ''}</label>
         <label class="field"><span class="field-label">Related incident report <span class="muted" style="font-weight:400">(optional)</span></span>
-          <input class="input mono" id="fIR" placeholder="IR-2026-0000" value="${esc(f.ir)}" oninput="state.form.ir=this.value">
+          <input class="input mono" id="fIR" placeholder="IR-2026-0000" value="${esc(f.ir)}" oninput="state.form.ir=this.value;saveDraft()">
           <span class="field-hint">If this came from an incident (break-in, vandalism, fire), add the IR number so the two records link.</span></label>
       </div>
     </section>
     ${f.errors.length ? `<div class="note warn" role="alert" style="margin-bottom:14px">${ic('alert')}<span>Please finish: ${f.errors.map(k => ({ loc:'the location', cat:'the kind of problem', urg:'the urgency questions', title:'a short summary', desc:'what’s happening' }[k])).join(', ')}.</span></div>` : ''}
     <div class="btn-row" style="justify-content:flex-end">
-      <button type="button" class="btn btn-lg" onclick="state.form=newForm();render()">Clear</button>
+      <span class="card-sub" id="draftTime" style="margin-right:auto">${f.savedAt ? 'Draft saved ' + fmtT(f.savedAt) : ''}</span>
+      <button type="button" class="btn btn-lg" onclick="discardDraft()">Clear</button>
       <button type="button" class="btn btn-lg btn-primary" onclick="submitForm()">Submit request</button>
     </div>
   </div>`;
@@ -1996,7 +2040,7 @@ function submitForm(){
   const id = `MR-2026-${String(state.seq).padStart(4, '0')}`;
   const r = { id, at: iso(now()), site:f.site, loc:f.loc, cat:f.cat, pri:formPri(f), status:'new', by: me().person, title:f.title.trim(), desc:f.desc.trim(),
     access:f.access.trim() || undefined, ir:f.ir.trim() || undefined, ph:f.photos || undefined, asset:f.asset || undefined, v:[], c:[], log:[], ev:[], src:'request' };
-  explain('submit', r, () => { state.seq++; REQUESTS.push(r); REQ[id] = r; f.submitted = id; render(); window.scrollTo(0, 0); });
+  explain('submit', r, () => { clearDraft(); state.seq++; REQUESTS.push(r); REQ[id] = r; f.submitted = id; render(); window.scrollTo(0, 0); });
 }
 function renderSubmitted(r){
   const notes = notesFor(r.pri === 'emergency' ? 'emergency' : 'new', r);
@@ -2513,6 +2557,72 @@ function toggleVendor(id){ const v = VENDOR[id], on = !!v.inactive;
   act({ title:`${on ? 'Reactivate' : 'Deactivate'} ${v.name}`, go: on ? 'Reactivate' : 'Deactivate', real:[['list', `${on ? 'Turns the vendor back on' : 'Turns the vendor off'} in the <code>Vendors</code> list. ${on ? 'They’re back in the vendor picker.' : 'They drop out of the vendor picker, and past requests and totals keep them.'}`]], toast:`${v.name} ${on ? 'reactivated' : 'deactivated'}` },
     () => { v.inactive = !on; AUDIT.unshift({ at:iso(now()), who:me().person, what: on ? 'Vendor reactivated' : 'Vendor deactivated', ref:'Vendors', detail:v.name }); render(); openVendor(id); });
 }
+
+function toggleDemo(){ const b = document.querySelector('.demo-bar'), open = b.classList.toggle('open');
+  $('demoMore').setAttribute('aria-expanded', open); $('demoMore').textContent = open ? 'Hide controls ▴' : 'Demo controls ▾'; }
+
+/* ── Draft auto-save (browser only, like IR) ── */
+const DRAFT_FIELDS = ['site','loc','asset','cat','danger','usable','title','desc','access','ir'];
+const draftKey = () => 'mr-draft-' + state.role;
+function saveDraft(quiet){
+  const f = state.form; if (!f || f.submitted || !(f.title || f.desc || f.loc || f.cat)) return;
+  const data = { savedAt: iso(now()) }; DRAFT_FIELDS.forEach(k => { data[k] = f[k]; });
+  try { localStorage.setItem(draftKey(), JSON.stringify(data)); } catch (e) { return; }
+  f.savedAt = now(); if (!quiet){ const el = $('draftTime'); if (el) el.textContent = 'Draft saved ' + fmtT(f.savedAt); }
+}
+function restoreDraft(){
+  try { const raw = localStorage.getItem(draftKey()); if (!raw) return null; const x = JSON.parse(raw);
+    return Object.assign(newForm(), x, { restored: x.savedAt, savedAt: d(x.savedAt), errors: [], submitted: null }); } catch (e) { return null; }
+}
+function clearDraft(){ try { localStorage.removeItem(draftKey()); } catch (e) { /* storage blocked */ } }
+function discardDraft(){ clearDraft(); state.form = newForm(); render(); toast('Draft cleared'); }
+
+/* ── On-target rate: vendor on site within the response target ── */
+function responseStats(list){
+  const out = { n:0, ok:0, pct:0, pri:{}, site:{}, done:[] };
+  list.filter(r => r.src === 'request' && r.pri !== 'planned' && !r.test && r.status !== 'cancelled').forEach(r => {
+    const t = targetOf(r), f = firstVisit(r); if (!f && TODAY <= t) return;   // not due yet, so not counted
+    const ok = !!f && f <= t; out.n++; if (ok) out.ok++;
+    const p = out.pri[r.pri] ||= { n:0, ok:0, h:[] }; p.n++; if (ok) p.ok++; if (f) p.h.push((f - d(r.at)) / HOUR);
+    const s = out.site[r.site] ||= { n:0, ok:0 }; s.n++; if (ok) s.ok++;
+    if (r.status === 'done') out.done.push((d(r.done) - d(r.at)) / DAY);
+  });
+  out.pct = out.n ? Math.round(out.ok / out.n * 100) : 0;
+  return out;
+}
+const fmtDur = h => h < 48 ? `${Math.round(h)} hr` : `${(h / 24).toFixed(1)} days`;
+function responseCard(st){
+  const priRows = ['emergency','urgent','routine'].filter(p => st.pri[p]).map(p => { const x = st.pri[p], avg = x.h.length ? x.h.reduce((a, b) => a + b, 0) / x.h.length : null;
+    return { label: PRI[p].label, v: Math.round(x.ok / x.n * 100), tip: `<b>${PRI[p].label}</b><br>${x.ok} of ${x.n} on target (${PRI[p].target})${avg != null ? `<br>Average: vendor on site in ${fmtDur(avg)}` : ''}` }; });
+  const siteRows = Object.entries(st.site).map(([id, x]) => ({ label: siteName(id), v: Math.round(x.ok / x.n * 100), tip: `<b>${esc(siteName(id))}</b><br>${x.ok} of ${x.n} on target` })).sort((a, b) => a.v - b.v || a.label.localeCompare(b.label)).slice(0, 8);
+  const avgDone = st.done.length ? (st.done.reduce((a, b) => a + b, 0) / st.done.length).toFixed(1) : null;
+  return `<div class="grid g-2" id="respCard" style="margin-bottom:14px">
+    <section class="card"><div class="card-head"><h2 class="card-title">On target, by priority</h2><span class="card-sub">Vendor on site within the target</span></div>${hbars(priRows, v => v + '%', null, 100)}
+      <div class="card-sub" style="margin-top:10px">${avgDone ? `Completed requests took ${avgDone} days on average, from report to done.` : 'No completed requests yet.'}</div></section>
+    <section class="card"><div class="card-head"><h2 class="card-title">On target, by site</h2><span class="card-sub">Lowest first</span></div>${hbars(siteRows, v => v + '%', null, 100)}</section></div>`;
+}
+
+/* ── Invoices and after photos ── */
+REQUESTS.forEach(r => r.c.forEach(c => { if (c.inv && c.inv !== '—') c.file ||= `invoice-${c.inv}.pdf`; }));
+['MR-2026-0402','MR-2026-0396','MR-2026-0394','MR-2026-0393'].forEach(id => { if (REQ[id]) REQ[id].after = 1; });
+function photoBlock(r, manage){
+  const tiles = (n, label) => Array.from({ length:n }, (_, i) => `<div class="photo">${ic('camera')}${label}-${i + 1}.jpg</div>`).join('');
+  const both = r.ph && r.after;
+  return `${both ? '<div class="section-label" style="margin-top:12px">Before</div>' : ''}${r.ph ? `<div class="photos">${tiles(r.ph, 'photo')}</div>` : ''}
+    ${r.after ? `<div class="section-label" style="margin-top:12px">After the work</div><div class="photos">${tiles(r.after, 'after')}</div>` : ''}
+    ${manage && ['scheduled','inprog','waiting','done'].includes(r.status) ? `<button type="button" class="btn btn-sm" style="margin-top:10px" onclick="addAfterPhoto('${r.id}')">${ic('camera')}Add after photo</button>` : ''}`;
+}
+function addAfterPhoto(id){
+  act({ title:'Add after photo', go:'Add sample photo', real:[['camera', 'On a phone, this opens the camera or photo library. On a computer, it opens a file picker.'],
+    ['lib', 'Saves it to the <code>Request Photos</code> library under “after”. The requester sees it on the request and in the completion message.']], demo:'A sample photo is added.', toast:'After photo added' },
+    () => { const r = REQ[id]; r.after = (r.after || 0) + 1; logEv(r, 'camera', `<b>${esc(me().person)}</b> added an after photo`); refresh(); });
+}
+function attachInvoice(){
+  act({ title:'Attach invoice', go:'Attach sample PDF', real:[['doc', 'Opens a file picker, or the camera to photograph a paper invoice.'],
+    ['lock', 'Invoices are saved with the restricted costs, so only Operations, PMs, SPMs, and Admin can open them, even with a link.']], demo:'A sample invoice is attached to the cost you’re adding.' },
+    () => { state.costFile = 'invoice-' + (($('cInv')?.value || '').trim() || 'new') + '.pdf'; const el = $('cFileName'); if (el) el.textContent = state.costFile; });
+}
+function openFile(name){ act({ title:`Open ${name}`, go:'OK', real:[['doc', 'Opens the invoice in the SharePoint or Teams file viewer. It’s stored with restricted permissions, so staff can’t open it.']] }); }
 
 function resendMsg(i){
   const n = NOTIF_LOG[i];
