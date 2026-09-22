@@ -1,0 +1,23 @@
+# Dependencies and build output (SPFx)
+node_modules/
+lib/
+dist/
+temp/
+release/
+.heft/
+*.sppkg
+.yo-resolve
+
+# Logs and OS files
+*.log
+.DS_Store
+Thumbs.db
+
+# Local tooling
+.env
+.claude/settings.local.json
+
+# Source data: this repo is public, so never commit real staff, resident, or vendor exports
+docs/scripts/data/
+*.xlsx
+*.csv
