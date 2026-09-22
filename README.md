@@ -12,7 +12,7 @@ The dark bar at the top controls the demo. It isn't part of the product.
 
 - **View as**: Staff, Program Manager, Senior Program Manager, Operations, Admin
 - **Host**: SharePoint page or Teams
-- **Modules**: *Core* (request tracking) or *Core + optional* (compliance dates, equipment, kitchens, recurring services)
+- **Modules**: *Core* (request tracking), *+ Optional* (compliance dates, equipment, kitchens, recurring services), or *+ Ideas* (features considered but not planned, shown for discussion)
 - **Explain buttons**: each action shows what it does in the real build before it runs
 - **Build notes**: the SharePoint lists and flows behind each screen
 
@@ -26,8 +26,11 @@ All people, vendors, and figures in the prototype are sample data.
 - Requesters track their own requests. PMs see their sites, SPMs see the sites they oversee, and Operations sees and manages everything. Admin can also change settings. PM and SPM assignments come from the Sites list shared with the Incident Reporting app.
 - Operations assigns vendors, books site visits, records costs, and closes requests. The app never contacts vendors.
 - Each notification can go by any mix of Teams channel post, Teams chat, and email. Admins configure this in Settings.
+- **Add to my calendar**: any booked vendor visit (or all upcoming visits) can be saved as an Outlook calendar file (`.ics`), built in the browser with no flow.
 
 **Optional modules** (keep or cut after stakeholder review): compliance dates, equipment with QR labels, kitchens, recurring vendor services.
+
+**Ideas** (not planned; each shows a rough build cost in the prototype): duplicate check, warranty tracking, vendor insurance, owner vs. DGM responsibility, charging costs to funding sources, unit turnover checklists, repeat-problem flags, site emergency info, checks done by site staff.
 
 ## Planned architecture
 

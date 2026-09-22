@@ -507,6 +507,25 @@ svg.i{width:16px;height:16px;flex-shrink:0;}
 .inline-form .input,.inline-form .select{min-height:38px;font-size:13px;padding:7px 10px;}
 .row-2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;}
 @media (max-width:480px){.row-2{grid-template-columns:minmax(0,1fr);}}
+
+/* ── Ideas (not planned, shown for discussion) ── */
+.idea-badge{font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--amber-ink);border:1px dashed var(--amber-b);border-radius:4px;padding:0 4px;line-height:14px;white-space:nowrap;vertical-align:middle;}
+.idea-note{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--ink);border:1px dashed var(--amber-b);background:var(--amber-l);border-radius:8px;padding:10px 12px;margin-top:10px;}
+.idea-note>svg{width:16px;height:16px;flex-shrink:0;margin-top:2px;color:var(--amber-ink);}
+.idea-note-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;}
+.idea-card{border:1px dashed var(--amber-b);}
+.check-row{display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px dashed var(--rule);font-size:13px;color:var(--ink);cursor:pointer;}
+.check-row:last-child{border-bottom:0;}
+.check-row input{width:16px;height:16px;accent-color:var(--accent);flex-shrink:0;}
+.check-row.done span{color:var(--ink3);text-decoration:line-through;}
+.psec details summary{cursor:pointer;font-size:11px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3);}
+.psec details[open] summary{margin-bottom:10px;}
+
+/* ── Add to my calendar ── */
+.visit-wrap{display:flex;align-items:center;gap:8px;}
+.visit-wrap .visit{flex:1;min-width:0;width:auto;margin:0;}
+.cal-add{flex-shrink:0;}
+@media (max-width:560px){.cal-add span{display:none;}}
 </style>
 </head>
 <body>
@@ -531,7 +550,7 @@ svg.i{width:16px;height:16px;flex-shrink:0;}
     <span class="seg" id="themeSeg"><button type="button" data-th="auto" aria-pressed="true">Auto</button><button type="button" data-th="light" aria-pressed="false">Light</button><button type="button" data-th="dark" aria-pressed="false">Dark</button></span>
   </div>
   <div class="demo-group"><label>Modules</label>
-    <span class="seg" id="modSeg"><button type="button" data-mod="core" aria-pressed="true">Core</button><button type="button" data-mod="all" aria-pressed="false">Core + optional</button></span>
+    <span class="seg" id="modSeg"><button type="button" data-mod="core" aria-pressed="true">Core</button><button type="button" data-mod="all" aria-pressed="false">+ Optional</button><button type="button" data-mod="ideas" aria-pressed="false">+ Ideas</button></span>
   </div>
   <label class="demo-check"><input type="checkbox" id="explainToggle" checked> Explain buttons</label>
   <label class="demo-check"><input type="checkbox" id="bnToggle"> Build notes</label>
@@ -1005,6 +1024,76 @@ const RULES = [
     rcp:[ { who:'Vendor', on:[], allow:[] } ] }
 ];
 
+/* ════════ IDEAS: not planned, shown for discussion (Modules → + Ideas) ════════
+   Everything in this block is sample data for features that were considered and set aside. */
+const FUNDS = ['Site operating budget','County contract','City contract','Veterans contract','Capital grant','General operating'];
+const SITE_IDEA = {   // tenure, what the owner/landlord covers (categories), owner contact, default funding source
+  '82nd':{ tenure:'Leased', covers:['roof','struct'], owner:'Property manager', fund:'County contract' },
+  arbor:{ tenure:'County-owned', covers:['roof'], owner:'County Facilities', fund:'County contract' },
+  banfield:{ tenure:'Leased', covers:['roof','hvac','elev'], owner:'Building management', fund:'General operating' },
+  bhrc:{ tenure:'County-owned', covers:['roof'], owner:'County Facilities', fund:'County contract' },
+  clayton:{ tenure:'DGM-owned', covers:[], owner:null, fund:'Site operating budget' },
+  findley:{ tenure:'DGM-owned', covers:[], owner:null, fund:'Site operating budget' },
+  grant:{ tenure:'Leased', covers:['roof','struct','hvac'], owner:'Motel owner', fund:'Veterans contract' },
+  kiggins:{ tenure:'City land, DGM structures', covers:[], owner:null, fund:'City contract' },
+  npdc:{ tenure:'Leased', covers:['roof','hvac'], owner:'Property manager', fund:'County contract' },
+  knauls:{ tenure:'County-owned', covers:['roof'], owner:'County Facilities', fund:'County contract' },
+  portsmouth:{ tenure:'DGM-owned', covers:[], owner:null, fund:'Site operating budget' },
+  roseway:{ tenure:'Leased', covers:['roof','struct'], owner:'Property manager', fund:'County contract' },
+  stjohns:{ tenure:'City land, DGM structures', covers:[], owner:null, fund:'City contract' },
+  stark:{ tenure:'County-owned', covers:['roof'], owner:'County Facilities', fund:'County contract' },
+  thayer:{ tenure:'Leased', covers:['roof','struct','hvac'], owner:'Motel owner', fund:'Veterans contract' },
+  vv:{ tenure:'City land, DGM structures', covers:[], owner:null, fund:'Veterans contract' },
+  wyeast:{ tenure:'City land, DGM structures', covers:[], owner:null, fund:'Veterans contract' },
+  vbs:{ tenure:'Leased', covers:['roof'], owner:'Property manager', fund:'County contract' }
+};
+const VENDOR_COI = { hawthorne:'2026-10-15', keyline:'2026-09-10', cornerstone:'2026-12-31' };   // everyone else: 2027-04-30
+const VENDOR_W9 = { tidewater:false };
+const ASSET_WARRANTY = {
+  'KIG-P01':{ until:'2027-06-30', who:'Rheem, parts' },
+  'ARB-K06':{ until:'2026-12-31', who:'Manitowoc, parts & labor' },
+  'VBS-K03':{ until:'2027-03-31', who:'Blodgett, parts' },
+  'VEH-02': { until:'2026-11-30', who:'Ford, bumper to bumper' }
+};
+const TURNOVER = { id:'turnover', label:'Unit turnover', icon:'bed', types:['village','motel','psh'], idea:true };
+CATS.push(TURNOVER); CAT.turnover = TURNOVER;
+const TURNOVER_ITEMS = ['Deep clean','Smoke/CO detector tested','Heater and outlets checked','Pest inspection','Mattress cover replaced','Door lock re-keyed','Touch-up paint','Condition photos taken'];
+[
+  { id:'MR-2026-0142', at:'2026-03-11T09:20', site:'stjohns', loc:'Pod 7', cat:'pest', pri:'urgent', status:'done', done:'2026-03-27T12:00', by:'Sofia Marsh', vendor:'bridgecity',
+    title:'Bed bugs reported in Pod 7', desc:'Resident reported bites. Bugs found in the mattress seams.',
+    v:[{ at:'2026-03-12T10:00', end:'12:00', what:'Treatment 1', done:true, unit:true }, { at:'2026-03-26T10:00', end:'12:00', what:'Follow-up treatment', done:true, unit:true }],
+    c:[{ what:'Two treatments', amt:780, inv:'BCP-0931' }] },
+  { id:'MR-2026-0263', at:'2026-06-20T14:05', site:'stjohns', loc:'Pod 7', cat:'pest', pri:'urgent', status:'done', done:'2026-07-06T12:00', by:'Sofia Marsh', vendor:'bridgecity',
+    title:'Bed bugs back in Pod 7', desc:'New resident reported bites two weeks after moving in.',
+    v:[{ at:'2026-06-22T10:00', end:'12:00', what:'Treatment 1', done:true, unit:true }, { at:'2026-07-06T10:00', end:'12:00', what:'Follow-up treatment', done:true, unit:true }],
+    c:[{ what:'Two treatments', amt:810, inv:'BCP-1044' }] },
+  { id:'MR-2026-0397', at:'2026-09-14T09:00', site:'stjohns', loc:'Pod 18', cat:'turnover', pri:'routine', status:'inprog', by:'Sofia Marsh', vendor:'handycrew', needBy:'2026-09-25',
+    title:'Turnover: get Pod 18 ready for move-in', desc:'The previous resident moved out Sep 13. The new resident moves in Fri Sep 25.',
+    checklist: TURNOVER_ITEMS.map((t, i) => [t, [0, 1, 2, 7].includes(i)]),
+    v:[{ at:'2026-09-24T09:00', end:'12:00', what:'Touch-up paint and re-key lock', unit:true }] }
+].forEach(r => { Object.assign(r, { idea:true, src:'request', c: r.c || [], log:[] }); REQUESTS.push(r); REQ[r.id] = r; });
+const STAFF_CHECKS = [
+  { id:'s01', name:'Monthly fire extinguisher check', cat:'fire', site:'all',     freq:'Monthly', last:'2026-08-29', due:'2026-09-30', vendor:null, staff:true, ref:'NFPA 10 (monthly look-over)', proof:true },
+  { id:'s02', name:'Monthly emergency light test',    cat:'fire', site:'all',     freq:'Monthly', last:'2026-08-28', due:'2026-09-30', vendor:null, staff:true, ref:'NFPA 101 (30-second test)', proof:true },
+  { id:'s03', name:'Pod smoke/CO detector test',      cat:'fire', site:'kiggins', freq:'Monthly', last:'2026-08-15', due:'2026-09-15', vendor:null, staff:true, ref:'Village safety plan', proof:false }
+];
+STAFF_CHECKS.forEach(c => { c.idea = true; COMPLIANCE.push(c); });
+function siteFacts(s){   // sample text only; the real values would live on the Sites list
+  return {
+    village:{ water:'Curb valve at the main gate, east side', gas:'None (electric only)', power:'Main panel in the office trailer', access:'Staffed 24/7. Check in at the office trailer.', hazmat:'None on file' },
+    motel:{ water:'Meter vault, NW corner of the parking lot', gas:'Meter at the back of the building, south wall', power:'Main panel in the laundry room', access:'Front office 24/7. Ask for the manager on duty.', hazmat:'Asbestos survey on file' },
+    psh:{ water:'Mechanical room, ground floor (red valve)', gas:'Meter bank, north outside wall', power:'Electrical room behind the leasing office', access:'Fob entry. Borrow the vendor fob at the front desk.', hazmat:'None on file' },
+    congregate:{ water:'Basement mechanical room, north wall', gas:'Meter in the back alley', power:'Main panel in the utility closet by the staff office', access:'Staffed 24/7. Ring the front door buzzer.', hazmat:'Lead paint (pre-1978) — see report' },
+    day:{ water:'Meter pit at the sidewalk, front entrance', gas:'Meter on the east wall', power:'Panel in the storage room', access:'Open 8 am–5 pm. After hours, call Operations.', hazmat:'None on file' },
+    admin:{ water:'Utility closet, first floor', gas:'Managed by the building', power:'Managed by the building; call the property manager', access:'Badge entry; reception 8 am–5 pm', hazmat:'None on file' }
+  }[s.type];
+}
+function landlordFor(r){ const x = SITE_IDEA[r.site]; return x && x.owner && x.covers.includes(r.cat) ? x : null; }
+function repeatsFor(r){ if (r.src !== 'request') return []; return REQUESTS.filter(o => o.id !== r.id && o.src === 'request' && o.site === r.site && o.loc === r.loc && o.cat === r.cat && o.status !== 'cancelled' && Math.abs(d(r.at) - d(o.at)) < 365 * DAY && (ideasOn() || !o.idea)).sort((a, b) => d(a.at) - d(b.at)); }
+function warrantyFor(r){ const w = r.asset && ASSET_WARRANTY[r.asset]; return w && daysFromToday(d(w.until)) >= 0 ? w : null; }
+function coiOf(v){ const s = VENDOR_COI[v.id] || '2027-04-30', n = daysFromToday(d(s)); return n < 0 ? { cls:'p-warn', text:`Expired ${fmtD(d(s))}`, bad:true } : n <= 45 ? { cls:'p-amber', text:`Expires in ${n} days` } : { cls:'p-good', text:`Current to ${MON[d(s).getMonth()]} ${d(s).getFullYear()}` }; }
+const fundOf = (r, c) => c.fund || SITE_IDEA[r.site]?.fund || 'General operating';
+
 /* ════════════════════════ APP STATE & HELPERS ════════════════════════ */
 const state = {
   role:'ops', tab:null, mods:'core', explain:true,
@@ -1015,7 +1104,8 @@ const state = {
 };
 const me = () => ROLES[state.role];
 const canManage = () => state.role === 'ops' || state.role === 'admin';
-const optOn = () => state.mods === 'all';
+const optOn = () => state.mods !== 'core';           // "+ Optional" and "+ Ideas" both include the optional modules
+const ideasOn = () => state.mods === 'ideas';
 function scopeIds(){
   const r = state.role;
   if (r === 'ops' || r === 'admin') return ALL_SITE_IDS;
@@ -1031,8 +1121,8 @@ function scopeChip(){
   return `<span class="scope-chip">${ic('pin')}<span>Showing <b>${esc(what)}</b> · ${why}</span></span>`;
 }
 const byNewest = (a, b) => d(b.at) - d(a.at);
-const reqsInScope = () => REQUESTS.filter(r => (optOn() || r.src === 'request') && inScope(r.site));
-const myRequests = () => REQUESTS.filter(r => r.src === 'request' && r.by === me().person).sort(byNewest);
+const reqsInScope = () => REQUESTS.filter(r => (optOn() || r.src === 'request') && (ideasOn() || !r.idea) && inScope(r.site));
+const myRequests = () => REQUESTS.filter(r => r.src === 'request' && (ideasOn() || !r.idea) && r.by === me().person).sort(byNewest);
 const siteName = id => SITE[id]?.name || id;
 const whereText = r => `${siteName(r.site)} › ${r.loc}`;
 const catLabel = id => CAT[id]?.label || id;
@@ -1041,6 +1131,11 @@ const statusPill = r => `<span class="pill ${STATUS[r.status].cls}">${STATUS[r.s
 const priPill = p => `<span class="pill p-${p}">${p === 'emergency' ? ic('alert') : ''}${PRI[p].label}</span>`;
 const bn = html => `<div class="bn">${html}</div>`;
 const optBadge = () => `<span class="opt-badge" title="Optional module">Optional</span>`;
+const ideaBadge = () => `<span class="idea-badge" title="Idea: not planned, shown for discussion">Idea</span>`;
+function ideaNote(icon, html, key, extra){
+  return `<div class="idea-note">${ic(icon)}<div class="idea-note-body"><div>${ideaBadge()} ${html}</div>
+    <div class="btn-row">${extra || ''}<button type="button" class="link" onclick="explain('${key}')">What would this take?</button></div></div></div>`;
+}
 
 /* Response targets: Emergency 4 h · Urgent 2 days · Routine 14 days (time until a vendor is on site). */
 function targetOf(r){ if (r.pri === 'planned') return r.due ? d(r.due) : null; return new Date(d(r.at).getTime() + PRI[r.pri].hours * HOUR); }
@@ -1184,6 +1279,67 @@ function explain(key, ctx, then){
     <div class="modal-foot"><button type="button" class="btn" data-close>Cancel</button><button type="button" class="btn btn-primary" id="explainGo">${esc(e.go || 'Continue')}</button></div>`);
   $('explainGo').onclick = () => { closeModal(); finish(); };
 }
+
+/* Calendar (core) and ideas (not planned). Idea popups end with a rough build cost so stakeholders can weigh them. */
+const IDEA_DEMO = 'Shown for discussion only. This is not planned for v1.';
+Object.assign(EXPLAIN, {
+  calOne: c => ({ title:'Add to my calendar', go:'Got it', real:[
+    ['spfx', `The app builds a standard calendar file (<code>.ics</code>) right in your browser for this visit: ${esc(c.vendor)}, ${esc(c.when)}, at ${esc(c.where)}, with any access notes and a link back to ${c.id}. No flow and no extra permissions.`],
+    ['cal', 'Opening the file adds the visit to your Outlook calendar (desktop, web, or phone) with a 30-minute reminder. It also works with Apple and Google calendars.'],
+    ['info', 'Each visit keeps the same event ID. If the visit changes, adding it again updates the existing event instead of creating a duplicate.'],
+    ['teams', 'In Teams on a phone, where file downloads are limited, the button opens Outlook on the web with the event already filled in.'] ],
+    demo:'No file is created in this demo.' }),
+  calAll: c => ({ title:`Add ${c.n} visit${c.n === 1 ? '' : 's'} to my calendar`, go:'Got it', real:[
+    ['spfx', `The app builds one calendar file (<code>.ics</code>) with all ${c.n} upcoming visit${c.n === 1 ? '' : 's'} ${c.scope}. Each has the vendor, time window, location, access notes, and a link back to its request.`],
+    ['cal', 'Opening it adds every visit to your Outlook calendar at once, each with a 30-minute reminder. Visits already added are updated, not duplicated.'] ],
+    demo:'No file is created in this demo.' }),
+  idea_dup: () => ({ title:'Idea: duplicate check', go:'OK', real:[
+    ['spfx', 'As someone fills in the form, the app looks for open requests at the same site in the same category (and location, if picked).'],
+    ['list', 'If it’s the same problem, they follow the existing request instead of filing a new one: a <code>RequestFollowers</code> list stores who else reported it and their note. Staff can add to that list even though they can’t edit other people’s requests.'],
+    ['info', '<b>Build cost:</b> small. One lookup on the form, one new list, no flow.'] ], demo: IDEA_DEMO }),
+  idea_warranty: () => ({ title:'Idea: warranty tracking', go:'OK', real:[
+    ['list', 'Adds Warranty end and Warranty contact columns to the <code>Assets</code> list.'],
+    ['spfx', 'Requests linked to that equipment show a warranty notice, so Operations checks coverage before paying for parts.'],
+    ['info', '<b>Build cost:</b> small. Two columns, no flow. Needs the optional Equipment module.'] ], demo: IDEA_DEMO }),
+  idea_coi: () => ({ title:'Idea: vendor insurance', go:'OK', real:[
+    ['list', 'Adds Insurance expires and W-9 on file columns to <code>Vendors</code>, plus a Vendor Documents library for certificates.'],
+    ['spfx', 'The vendor picker warns before assigning a vendor whose insurance has expired. The app queues a reminder to Operations 30 days before it expires.'],
+    ['info', '<b>Build cost:</b> small. Two columns and a library, no new flow.'] ], demo: IDEA_DEMO }),
+  idea_landlord: () => ({ title:'Idea: owner vs. DGM responsibility', go:'OK', real:[
+    ['list', 'Adds Tenure, Owner covers (categories), and Owner contact columns to the Sites list.'],
+    ['spfx', 'When a request falls under the owner’s responsibility (e.g. the roof at a leased site), the app shows who to call. Operations can mark it “Sent to owner.”'],
+    ['info', '<b>Build cost:</b> small. Three columns, no flow.'] ], demo: IDEA_DEMO }),
+  idea_fund: () => ({ title:'Idea: charge costs to a funding source', go:'OK', real:[
+    ['list', 'Adds a Charge to choice on each cost line. Choices are managed in Settings, and each site has a default.'],
+    ['spfx', 'The Overview and exports total spending by funding source for grant and contract reporting.'],
+    ['info', '<b>Build cost:</b> small. One column, one settings list, no flow.'] ], demo: IDEA_DEMO }),
+  idea_turnover: () => ({ title:'Idea: unit turnover checklists', go:'OK', real:[
+    ['list', 'Adds a <code>ChecklistTemplates</code> list. A Unit turnover request gets its template’s items automatically.'],
+    ['spfx', 'The request shows the checklist and a Needed by date (the move-in date). Staff tick items off from their phone, and Operations sees progress at a glance.'],
+    ['info', '<b>Build cost:</b> medium. One list, a checklist UI on requests, no flow.'] ], demo: IDEA_DEMO }),
+  idea_repeat: () => ({ title:'Idea: repeat-problem flags', go:'OK', real:[
+    ['spfx', 'The app counts requests at the same location in the same category (or on the same equipment) over the last 12 months. The threshold is set in Settings.'],
+    ['info', 'Flags show on the request and the Overview. They help decide when to fix the underlying cause or replace something instead of repairing it again.'],
+    ['info', '<b>Build cost:</b> small. No new data, just a calculation.'] ], demo: IDEA_DEMO }),
+  idea_siteinfo: () => ({ title:'Idea: site emergency info', go:'OK', real:[
+    ['list', 'Adds Shutoff locations, Vendor access instructions, and Hazmat notes columns to the Sites list. Only Operations can edit them.'],
+    ['spfx', 'Shown on the request form’s emergency screen and on each request, so whoever is on site knows where the water shutoff is.'],
+    ['lock', 'Door codes and alarm codes are never stored here.'],
+    ['info', '<b>Build cost:</b> small. A few columns, no flow.'] ], demo: IDEA_DEMO }),
+  idea_staff: () => ({ title:'Idea: checks done by site staff', go:'OK', real:[
+    ['list', 'Compliance items get a “Done by: site staff” option for simple monthly checks (extinguishers, emergency lights, detectors).'],
+    ['spfx', 'The site PM gets the reminder. Staff mark the check done from their phone, optionally by scanning a QR label on the extinguisher.'],
+    ['info', '<b>Build cost:</b> small to medium. One column, a staff view of checks, no flow. Needs the optional Compliance module.'] ], demo: IDEA_DEMO }),
+  followReq: c => ({ title:`Follow ${c.id} instead`, go:'Follow request', real:[
+    ['list', 'Adds you to <code>RequestFollowers</code> for that request, with your note. No new request is created.'],
+    ['spfx', 'You get the same Teams and email updates as the original requester, and Operations sees “+1 also reported this.”'] ],
+    demo:'You’re added as a follower and the request opens.', toast:`You’re following ${c.id}` }),
+  ownerSent: () => ({ title:'Mark sent to owner', go:'Mark sent', real:[
+    ['list', 'Adds “Sent to owner” with the date to the request, and a timeline entry. The request stays open until the owner’s work is done.'] ],
+    demo:'A timeline entry is added.', toast:'Marked sent to owner' }),
+  coiUpload: () => ({ title:'Upload insurance certificate', go:'OK', real:[
+    ['lib', 'Uploads the certificate to the Vendor Documents library and updates Insurance expires on the vendor.'] ], demo: IDEA_DEMO })
+});
 
 /* ── Modal, panel, toast, tooltip ── */
 const X_BTN = `<button type="button" class="x-btn" data-close aria-label="Close">${ic('x')}</button>`;
@@ -1363,6 +1519,7 @@ function renderOverview(){
       <section class="card"><div class="card-head"><h2 class="card-title">Recently completed</h2><button type="button" class="link" onclick="setRq('done')">All completed →</button></div>
         ${recentDone.length ? `<div class="list">${recentDone.map(r => reqLi(r, `<span class="tnum">${r.c.length ? money(r.c.reduce((s, x) => s + x.amt, 0)) : '—'}</span><span>${fmtD(d(r.done))}</span>`)).join('')}</div>` : `<div class="empty">Nothing completed yet.</div>`}</section>
     </div>
+    ${ideasOn() ? overviewIdeas() : ''}
   </div>`;
 }
 
@@ -1417,7 +1574,7 @@ function rqTableHtml(){
       const nv = nextVisit(r), t = targetOf(r);
       const when = r.status === 'done' ? `Done ${fmtD(d(r.done))}` : nv ? `${WD[nv.getDay()]} ${fmtD(nv)}, ${fmtT(nv)}` : t && OPEN.includes(r.status) ? `<span class="${isLate(r) ? 'late' : ''}">${isLate(r) ? 'Past target' : 'Respond by ' + fmtD(t)}</span>` : '—';
       return `<tr class="click" tabindex="0" onclick="openReq('${r.id}')" onkeydown="if(event.key==='Enter')openReq('${r.id}')">
-        <td class="t-main pri-cell pr-${r.pri}">${esc(r.title)}<span class="sub"><span class="mono">${r.id}</span> · ${PRI[r.pri].label} · ${esc(catLabel(r.cat))}${r.src !== 'request' ? ' · ' + (r.src === 'recurring' ? 'Recurring' : 'Compliance') : ''}</span></td>
+        <td class="t-main pri-cell pr-${r.pri}">${esc(r.title)}<span class="sub"><span class="mono">${r.id}</span> · ${PRI[r.pri].label} · ${esc(catLabel(r.cat))}${r.src !== 'request' ? ' · ' + (r.src === 'recurring' ? 'Recurring' : 'Compliance') : ''}${ideasOn() && repeatsFor(r).length ? ` · <span class="late">Repeat</span>` : ''}${ideasOn() && landlordFor(r) ? ' · Owner’s responsibility' : ''}</span></td>
         <td>${esc(siteName(r.site))}<span class="sub">${esc(r.loc)}</span></td>
         <td>${statusPill(r)}${r.status === 'waiting' && r.wait ? `<span class="sub">${esc(r.wait)}</span>` : ''}</td>
         <td>${r.vendor ? esc(VENDOR[r.vendor].name) : '<span class="muted">Not assigned</span>'}</td>
@@ -1483,6 +1640,7 @@ function openReq(id, keep){
   <div class="panel-body">
     <div class="target-bar ${ti.cls}">${ic(ti.icon)}<span>${ti.text}</span></div>
     ${r.status === 'waiting' && r.wait ? `<div class="note amber" style="margin-top:8px">${ic('clock')}<span><b>Waiting:</b> ${esc(r.wait)}</span></div>` : ''}
+    ${ideasOn() ? reqIdeaNotes(r, manage) : ''}
 
     <section class="psec"><div class="psec-head"><h3 class="section-label">What's wrong</h3></div>
       <p class="desc">${esc(r.desc)}</p>
@@ -1496,9 +1654,10 @@ function openReq(id, keep){
       </dl>
     </section>
 
+    ${ideasOn() && r.checklist ? checklistSection(r) : ''}
     <section class="psec"><div class="psec-head"><h3 class="section-label">Vendor & visits</h3>${manage && v ? `<button type="button" class="link" onclick="toggleEl('vendorPick')">Change vendor</button>` : ''}</div>
       ${v ? `<div class="vendor-card"><div class="vc-main">
-          <div class="vc-name">${esc(v.name)}</div><div class="vc-line">${esc(v.trade)}</div>
+          <div class="vc-name">${esc(v.name)}</div><div class="vc-line">${esc(v.trade)}${ideasOn() ? ` · <span class="pill ${coiOf(v).cls}">Insurance: ${coiOf(v).text}</span> ${ideaBadge()}` : ''}</div>
           <div class="vc-line">${ic('phone')}<button type="button" class="link" onclick="callVendor('${v.id}')">${v.phone}</button>${v.after ? ` · after hours <button type="button" class="link" onclick="callVendor('${v.id}',1)">${v.after}</button>` : ''}</div>
           <div class="vc-line">${ic('mail')}<button type="button" class="link" onclick="mailVendor('${v.id}')">${esc(v.email)}</button></div>
         </div>${manage ? `<button type="button" class="btn btn-sm" onclick="copyForVendor('${r.id}')">${ic('copy')}Copy details</button>` : ''}</div>
@@ -1507,15 +1666,15 @@ function openReq(id, keep){
       ${manage ? `<div class="inline-form" id="vendorPick" ${v ? 'hidden' : ''}>
           <label class="field"><span class="field-label">${v ? 'Change vendor' : 'Assign a vendor'}</span>
           <select class="select" id="vSel"><option value="">Choose a vendor…</option>
-            ${suggested.length ? `<optgroup label="Suggested for ${esc(catLabel(r.cat))}">${suggested.map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}</optgroup>` : ''}
-            <optgroup label="All vendors">${others.map(x => `<option value="${x.id}">${esc(x.name)} · ${esc(x.trade)}</option>`).join('')}</optgroup></select></label>
+            ${suggested.length ? `<optgroup label="Suggested for ${esc(catLabel(r.cat))}">${suggested.map(x => `<option value="${x.id}">${esc(x.name)}${ideasOn() && coiOf(x).bad ? ' (insurance expired)' : ''}</option>`).join('')}</optgroup>` : ''}
+            <optgroup label="All vendors">${others.map(x => `<option value="${x.id}">${esc(x.name)} · ${esc(x.trade)}${ideasOn() && coiOf(x).bad ? ' (insurance expired)' : ''}</option>`).join('')}</optgroup></select></label>
           <div class="btn-row"><button type="button" class="btn btn-primary btn-sm" onclick="assignVendor('${r.id}')">Assign vendor</button></div></div>` : ''}
       <div style="margin-top:12px">
         ${r.v.length ? r.v.map((x, i) => `<div class="visit-row">
             <span class="datebox"><span class="m">${MON[d(x.at).getMonth()]}</span><span class="d">${d(x.at).getDate()}</span></span>
             <div class="li-main"><div class="li-title">${esc(x.what)}</div>
               <div class="li-meta"><span>${WD[d(x.at).getDay()]} ${visitWindow(x)}</span>${x.unit ? `<span class="pill p-amber">${ic('lock')}In a resident's unit</span>` : ''}</div></div>
-            <div class="li-right">${x.done ? `<span class="pill p-done">${ic('check')}Done</span>` : `<span class="pill p-scheduled">Booked</span>${manage ? `<button type="button" class="link" onclick="visitDone('${r.id}',${i})">Mark done</button>` : ''}`}</div>
+            <div class="li-right">${x.done ? `<span class="pill p-done">${ic('check')}Done</span>` : `<span class="pill p-scheduled">Booked</span><button type="button" class="link" onclick="calOne('${r.id}',${i})">${ic('cal')} Add to calendar</button>${manage ? `<button type="button" class="link" onclick="visitDone('${r.id}',${i})">Mark done</button>` : ''}`}</div>
           </div>`).join('') : `<div class="muted" style="font-size:13px">No visits booked yet.</div>`}
       </div>
       ${manage && OPEN.includes(r.status) ? `<button type="button" class="btn btn-sm" style="margin-top:10px" onclick="toggleEl('visitForm')">${ic('cal')}Book a visit</button>
@@ -1530,15 +1689,17 @@ function openReq(id, keep){
     </section>
 
     ${isMgr ? `<section class="psec"><div class="psec-head"><h3 class="section-label">Costs</h3><span class="tnum" style="font-weight:500">${money(costTotal)}</span></div>
-      ${r.c.length ? r.c.map(c => `<div class="cost-row"><span>${esc(c.what)} <span class="muted">· invoice ${esc(c.inv)}</span></span><span class="tnum">${money(c.amt)}</span></div>`).join('') : `<div class="muted" style="font-size:13px">No costs recorded.</div>`}
+      ${r.c.length ? r.c.map(c => `<div class="cost-row"><span>${esc(c.what)} <span class="muted">· invoice ${esc(c.inv)}</span>${ideasOn() ? ` <span class="tag">${esc(fundOf(r, c))}</span>` : ''}</span><span class="tnum">${money(c.amt)}</span></div>`).join('') : `<div class="muted" style="font-size:13px">No costs recorded.</div>`}
       ${manage ? `<button type="button" class="btn btn-sm" style="margin-top:10px" onclick="toggleEl('costForm')">${ic('dollar')}Add cost</button>
         <div class="inline-form" id="costForm" hidden>
           <label class="field"><span class="field-label">Description</span><input class="input" id="cWhat" placeholder="e.g. Replace heater element"></label>
           <div class="row-2"><label class="field"><span class="field-label">Amount ($)</span><input class="input" id="cAmt" type="number" min="0" step="0.01" placeholder="0.00"></label>
             <label class="field"><span class="field-label">Invoice #</span><input class="input" id="cInv" placeholder="Optional"></label></div>
+          ${ideasOn() ? `<label class="field"><span class="field-label">Charge to ${ideaBadge()}</span><select class="select" id="cFund">${FUNDS.map(x => `<option${x === SITE_IDEA[r.site]?.fund ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select></label>` : ''}
           <div class="btn-row"><button type="button" class="btn btn-primary btn-sm" onclick="addCost('${r.id}')">Add cost</button></div></div>` : ''}
     </section>` : ''}
 
+    ${ideasOn() ? siteInfoSection(r) : ''}
     <section class="psec"><div class="psec-head"><h3 class="section-label">Activity</h3><span class="card-sub">Click a notification to preview it</span></div>
       <div class="act">${activity(r).map(a => `<div class="act-item"><span class="act-ico ${a.note ? (a.note.chans.includes('email') && a.note.chans.length === 1 ? 'mail' : 'teams') : ''}">${ic(a.icon)}</span>
         <div class="act-text">${a.note ? `<button type="button" class="link" style="font-weight:400;text-align:left" onclick='previewNote("${r.id}",${JSON.stringify(a.note).replace(/'/g, '&#39;')})'>${a.html}</button>` : a.html}</div>
@@ -1581,7 +1742,7 @@ function visitDone(id, i){ const r = REQ[id]; explain('visitDone', {}, () => { r
 function addCost(id){
   const r = REQ[id], amt = parseFloat($('cAmt').value);
   if (!(amt >= 0)){ $('cAmt').focus(); return; }
-  const c = { what: $('cWhat').value.trim() || 'Vendor invoice', amt, inv: $('cInv').value.trim() || '—', added:true };
+  const c = { what: $('cWhat').value.trim() || 'Vendor invoice', amt, inv: $('cInv').value.trim() || '—', added:true, fund: $('cFund')?.value || undefined };
   explain('cost', {}, () => { r.c.push(c); logEv(r, 'dollar', `Cost added: ${esc(c.what)} · ${money(c.amt)} · invoice ${esc(c.inv)}`); refresh(); });
 }
 function setStatus(id, to){
@@ -1671,7 +1832,7 @@ function renderReport(){
   const f = state.form ||= newForm();
   if (f.submitted) return renderSubmitted(REQ[f.submitted]);
   const s = SITE[f.site], L = siteLocations(s), pri = formPri(f);
-  const cats = CATS.filter(c => (!c.kitchenOnly || s.kitchen) && (!c.types || c.types.includes(s.type)));
+  const cats = CATS.filter(c => (!c.kitchenOnly || s.kitchen) && (!c.types || c.types.includes(s.type)) && (!c.idea || ideasOn()));
   const siteAssets = optOn() ? ASSETS.filter(a => a.site === f.site) : [];
   const yn = (key, val, label, danger) => `<button type="button" class="${danger ? 'danger' : ''}" aria-pressed="${f[key] === val}" onclick="state.form.${key}=${val};${key === 'danger' ? 'state.form.usable=null;' : ''}render()">${label}</button>`;
   const err = k => f.errors.includes(k) ? ' style="border-color:var(--warn)"' : '';
@@ -1698,14 +1859,17 @@ function renderReport(){
     <section class="form-sec"${err('cat')}><div class="form-sec-head"><span class="step-n">2</span><h2 class="form-sec-title">What kind of problem?</h2></div>
       <div class="cat-grid" role="group" aria-label="Category">${cats.map(c => `<button type="button" class="cat-btn" aria-pressed="${f.cat === c.id}" onclick="state.form.cat='${c.id}';render()">${ic(c.icon)}<span>${esc(c.label)}</span></button>`).join('')}</div>
       ${s.kitchen ? '' : `<div class="field-hint" style="margin-top:8px">Kitchen equipment appears for sites with a full kitchen.</div>`}
+      ${ideasOn() && f.cat === 'turnover' ? ideaNote('bed', `Unit turnover requests come with a make-ready checklist: ${TURNOVER_ITEMS.join(', ').toLowerCase()}.`, 'idea_turnover') : ''}
     </section>
+    ${ideasOn() ? dupCheck(f) : ''}
 
     <section class="form-sec"${err('urg')}><div class="form-sec-head"><span class="step-n">3</span><h2 class="form-sec-title">How urgent is it?</h2></div>
       <p class="q">Is anyone in danger, or is there active flooding, fire, a gas smell, sparking, or an outside door that won’t lock?</p>
       <div class="yn">${yn('danger', false, 'No')}${yn('danger', true, 'Yes, it’s an emergency', true)}</div>
       ${f.danger === true ? `<div class="emerg" role="alert"><div class="emerg-title">${ic('alert')}Emergency: do this now</div>
           <p style="font-size:13px;line-height:1.6">${esc(SETTINGS.emergencyMsg)}</p>
-          <p style="font-size:13px;line-height:1.6;margin-top:6px">Then finish this form. Operations and your PM get an immediate Teams alert and email.</p></div>` : ''}
+          <p style="font-size:13px;line-height:1.6;margin-top:6px">Then finish this form. Operations and your PM get an immediate Teams alert and email.</p>
+          ${ideasOn() ? (() => { const x = siteFacts(s); return ideaNote('valve', `<b>${esc(s.name)} shutoffs:</b> water: ${esc(x.water)} · gas: ${esc(x.gas)} · power: ${esc(x.power)}`, 'idea_siteinfo'); })() : ''}</div>` : ''}
       ${f.danger === false ? `<p class="q" style="margin-top:16px">Can people still use the space or equipment?</p>
         <div class="yn">${yn('usable', true, 'Yes, it can wait a bit')}${yn('usable', false, 'No, it’s out of use')}</div>` : ''}
       ${pri ? `<div class="result-pri">This will be sent as ${priPill(pri)}<span>Goal: a vendor on site within ${PRI[pri].target}. Operations can adjust this.</span></div>` : ''}
@@ -1773,7 +1937,7 @@ function renderMine(){
     <div class="page-head"><div><h1 class="page-title">My requests</h1><div class="page-sub">Everything you’ve reported and where it stands.</div></div>
       <button type="button" class="btn btn-primary" onclick="go('report')">${ic('plus')}Report a problem</button></div>
     ${bn('<b>My requests</b> · MaintenanceRequests filtered to <b>Author = me</b>. List setting: people read only their own items. PM, SPM and Operations get a permission level with “Override list behaviors” so the app can read their sites.')}
-    ${upcoming.length ? `<div class="banner">${ic('cal')}<span>${upcoming.map(({ r, v, t }) => `${esc(VENDOR[r.vendor]?.name || 'A vendor')} is booked for <b>${esc(r.loc)}</b> on ${WD[t.getDay()]} ${fmtD(t)}, ${visitWindow(v)}`).join('. ')}.</span></div>` : ''}
+    ${upcoming.length ? `<div class="banner">${ic('cal')}<span>${upcoming.map(({ r, v, t }) => `${esc(VENDOR[r.vendor]?.name || 'A vendor')} is booked for <b>${esc(r.loc)}</b> on ${WD[t.getDay()]} ${fmtD(t)}, ${visitWindow(v)}`).join('. ')}.</span><button type="button" class="btn btn-sm" style="margin-left:auto" onclick="calAll('mine')">${ic('cal')}Add to my calendar</button></div>` : ''}
     ${rs.length ? `<div class="grid">${rs.map(r => {
       const step = STEP_OF[r.status], acts = activity(r).filter(a => !a.note), last = acts[acts.length - 1], nv = nextVisit(r);
       return `<button type="button" class="req-card" onclick="openReq('${r.id}')">
@@ -1796,12 +1960,12 @@ function renderSchedule(){
   return `<div class="page">
     <div class="page-head"><div><h1 class="page-title">Schedule</h1><div class="page-sub">Vendor visits booked on requests${optOn() ? ', plus recurring services' : ''}. Site PMs get a Teams message when a visit is booked.</div></div>${scopeChip()}</div>
     ${bn('<b>Schedule</b> · visits are rows on each request (child list <b>RequestVisits</b>). Optional: the app can also write them to the Operations group calendar through Microsoft Graph, so they show in Outlook and Teams.')}
-    <section class="card" style="margin-bottom:14px"><div class="card-head"><h2 class="card-title">Vendors on site, next 14 days</h2><span class="card-sub">${visits.length} visit${visits.length === 1 ? '' : 's'}</span></div>
+    <section class="card" style="margin-bottom:14px"><div class="card-head"><h2 class="card-title">Vendors on site, next 14 days</h2><div class="btn-row"><span class="card-sub">${visits.length} visit${visits.length === 1 ? '' : 's'}</span>${visits.length ? `<button type="button" class="btn btn-sm" onclick="calAll('schedule')">${ic('cal')}Add all to my calendar</button>` : ''}</div></div>
       ${days.length ? days.map(k => { const dd = new Date(k), today = daysFromToday(dd) === 0; return `<div class="agenda-day">
         <div class="agenda-date${today ? ' today' : ''}"><b>${today ? 'Today' : daysFromToday(dd) === 1 ? 'Tomorrow' : WD[dd.getDay()]}</b>${fmtD(dd)}</div>
-        <div>${byDay[k].map(({ r, v }) => `<button type="button" class="visit" onclick="openReq('${r.id}')"><span class="visit-time">${visitWindow(v)}</span>
+        <div>${byDay[k].map(({ r, v }) => `<div class="visit-wrap"><button type="button" class="visit" onclick="openReq('${r.id}')"><span class="visit-time">${visitWindow(v)}</span>
           <span class="visit-body"><span class="li-title" style="display:block">${esc(VENDOR[r.vendor]?.name || 'Vendor')} · ${esc(v.what)}</span>
-          <span class="li-meta"><span>${esc(whereText(r))}</span><span class="mono">${r.id}</span>${v.unit ? `<span class="pill p-amber">${ic('lock')}In a unit, entry notice needed</span>` : ''}${r.src === 'recurring' ? '<span class="pill p-planned">Recurring</span>' : ''}</span></span></button>`).join('')}</div></div>`; }).join('')
+          <span class="li-meta"><span>${esc(whereText(r))}</span><span class="mono">${r.id}</span>${v.unit ? `<span class="pill p-amber">${ic('lock')}In a unit, entry notice needed</span>` : ''}${r.src === 'recurring' ? '<span class="pill p-planned">Recurring</span>' : ''}</span></span></button><button type="button" class="btn btn-sm cal-add" onclick="calOne('${r.id}',${r.v.indexOf(v)})" aria-label="Add this visit to my calendar">${ic('cal')}<span>Add to calendar</span></button></div>`).join('')}</div></div>`; }).join('')
       : `<div class="empty">No vendor visits booked in the next two weeks.</div>`}
     </section>
     ${optOn() ? `<section class="card">
@@ -1817,7 +1981,7 @@ function renderSchedule(){
       </div></div>
       <div class="table-wrap" style="margin-top:14px"><table class="table"><thead><tr><th>Service</th><th>How often</th><th>Vendor</th><th class="num">Sites</th><th>Next</th><th>Request created</th></tr></thead>
         <tbody>${recur.map(rs => { const nx = rs.dates.map(d).find(t => t >= sod(TODAY)); return `<tr><td class="t-main">${esc(rs.name)}</td><td>${esc(rs.freq)}</td><td>${esc(VENDOR[rs.vendor].name)}</td><td class="num">${rs.mine.length}</td><td>${nx ? fmtD(nx) : '—'}</td><td>${rs.lead} days before</td></tr>`; }).join('')}</tbody></table></div>
-    </section>` : `<div class="note">${ic('info')}<span>Turn on <b>Modules → Core + optional</b> in the demo bar to see recurring services (monthly pest control, landscaping, HVAC service) that create requests automatically.</span></div>`}
+    </section>` : `<div class="note">${ic('info')}<span>Turn on <b>Modules → + Optional</b> in the demo bar to see recurring services (monthly pest control, landscaping, HVAC service) that create requests automatically.</span></div>`}
   </div>`;
 }
 
@@ -1829,11 +1993,12 @@ function renderVendors(){
       <button type="button" class="btn btn-primary" onclick="explain('addVendor',{},addSampleVendor)">${ic('plus')}Add vendor</button></div>
     ${bn('<b>Vendors</b> list: name, trade, categories, phone, after-hours line, email. Used by the vendor picker on requests. Totals come from request costs.')}
     <div class="note" style="margin-bottom:14px">${ic('info')}<span>The app never emails or texts vendors. Operations contacts them directly and records the visit on the request. Vendor email is a possible later integration.</span></div>
-    <div class="table-wrap"><table class="table"><thead><tr><th>Vendor</th><th>Phone</th><th>Email</th><th class="num">Open requests</th><th class="num">Visits, next 14 days</th><th class="num">Invoiced on requests</th></tr></thead>
+    <div class="table-wrap"><table class="table"><thead><tr><th>Vendor</th><th>Phone</th><th>Email</th><th class="num">Open requests</th><th class="num">Visits, next 14 days</th><th class="num">Invoiced on requests</th>${ideasOn() ? `<th>Insurance ${ideaBadge()}</th>` : ''}</tr></thead>
       <tbody>${VENDORS.map(v => { const mine = rs.filter(r => r.vendor === v.id), open = mine.filter(r => OPEN.includes(r.status)).length, vis = upcomingVisits(14).filter(x => x.r.vendor === v.id).length, amt = mine.reduce((s, r) => s + sep(r), 0);
         return `<tr class="click" tabindex="0" onclick="openVendor('${v.id}')" onkeydown="if(event.key==='Enter')openVendor('${v.id}')">
           <td class="t-main">${esc(v.name)}<span class="sub">${esc(v.trade)}</span></td><td class="tnum">${v.phone}${v.after ? `<span class="sub">After hours ${v.after}</span>` : ''}</td>
-          <td>${esc(v.email)}</td><td class="num">${open || '—'}</td><td class="num">${vis || '—'}</td><td class="num">${amt ? money(amt) : '—'}</td></tr>`; }).join('')}</tbody></table></div>
+          <td>${esc(v.email)}</td><td class="num">${open || '—'}</td><td class="num">${vis || '—'}</td><td class="num">${amt ? money(amt) : '—'}</td>${ideasOn() ? `<td><span class="pill ${coiOf(v).cls}">${coiOf(v).text}</span>${VENDOR_W9[v.id] === false ? '<span class="sub late">W-9 not on file</span>' : ''}</td>` : ''}</tr>`; }).join('')}</tbody></table></div>
+    ${ideasOn() ? `<div style="margin-top:10px">${ideaNote('shield', 'Insurance certificates and W-9s tracked per vendor, with a warning before assigning a vendor whose insurance has lapsed.', 'idea_coi')}</div>` : ''}
   </div>`;
 }
 function addSampleVendor(){ const n = VENDORS.length + 1; const v = { id:'new' + n, name:`New Vendor ${n} (sample)`, trade:'General repairs', cats:['other'], phone:'(503) 555-0100', after:null, email:'office@newvendor.example' }; VENDORS.push(v); VENDOR[v.id] = v; render(); }
@@ -1846,7 +2011,9 @@ function openVendor(id){
         <dt>Phone</dt><dd><button type="button" class="link" onclick="callVendor('${id}')">${v.phone}</button></dd>
         ${v.after ? `<dt>After hours</dt><dd><button type="button" class="link" onclick="callVendor('${id}',1)">${v.after}</button></dd>` : ''}
         <dt>Email</dt><dd><button type="button" class="link" onclick="mailVendor('${id}')">${esc(v.email)}</button></dd>
-        <dt>Handles</dt><dd>${v.cats.map(c => esc(catLabel(c))).join(', ')}</dd></dl></section>
+        <dt>Handles</dt><dd>${v.cats.map(c => esc(catLabel(c))).join(', ')}</dd>
+        ${ideasOn() ? `<dt>Insurance ${ideaBadge()}</dt><dd><span class="pill ${coiOf(v).cls}">${coiOf(v).text}</span> <button type="button" class="link" onclick="explain('coiUpload')">Upload new certificate</button></dd>
+          <dt>W-9</dt><dd>${VENDOR_W9[v.id] === false ? '<span class="late">Not on file</span>' : 'On file'}</dd>` : ''}</dl></section>
       <section class="psec"><div class="psec-head"><h3 class="section-label">Open requests (${open.length})</h3></div>
         ${open.length ? `<div class="list">${open.map(r => reqLi(r)).join('')}</div>` : '<div class="muted" style="font-size:13px">None right now.</div>'}</section>
       <section class="psec"><div class="psec-head"><h3 class="section-label">Recently completed</h3></div>
@@ -1905,7 +2072,7 @@ function renderSettings(){
 
     <div class="grid g-2">
       <section class="card"><div class="card-head"><h2 class="card-title">Categories</h2><button type="button" class="btn btn-sm" onclick="explain('addCategory')">${ic('plus')}Add category</button></div>
-        <div class="btn-row">${CATS.map(c => `<span class="chip" style="cursor:default">${ic(c.icon)}${esc(c.label)}${c.kitchenOnly ? ' <span class="muted">· kitchen sites</span>' : c.types ? ` <span class="muted">· ${c.types.map(t => TYPE_LABEL[t].toLowerCase()).join(', ')}</span>` : ''}</span>`).join('')}</div></section>
+        <div class="btn-row">${CATS.filter(c => !c.idea || ideasOn()).map(c => `<span class="chip" style="cursor:default">${ic(c.icon)}${esc(c.label)}${c.kitchenOnly ? ' <span class="muted">· kitchen sites</span>' : c.types ? ` <span class="muted">· ${c.types.map(t => TYPE_LABEL[t].toLowerCase()).join(', ')}</span>` : ''}</span>`).join('')}</div></section>
       <section class="card"><div class="card-head"><h2 class="card-title">Locations</h2>
           <select class="fsel" id="locSite" aria-label="Site" onchange="state.locSite=this.value;render()">${SITES.map(s => `<option value="${s.id}"${s.id === locSite ? ' selected' : ''}>${esc(s.name)}</option>`).join('')}</select></div>
         <div class="field-hint" style="margin-bottom:8px">Common areas${L.units.length ? ` and ${L.units.length} ${L.unitLabel.toLowerCase()} (${esc(L.units[0])}–${esc(L.units[L.units.length - 1].replace(/^\D+/, ''))})` : ''}. Staff pick from this list on the request form.</div>
@@ -1951,7 +2118,7 @@ Object.assign(EXPLAIN, {
   editComp: () => ({ title:'Edit compliance item', go:'OK', real:[ ['list', 'Opens the item’s form (name, category, sites, frequency, due date, vendor, reminders).'] ] }),
   viewProof: () => ({ title:'Open certificate', go:'OK', real:[ ['lib', 'Opens the latest certificate or report from the <code>ComplianceDocs</code> library in the SharePoint/Teams file viewer.'] ] })
 });
-function compInScope(c){ return c.site === 'all' ? scopeIds().length > 0 : inScope(c.site); }
+function compInScope(c){ if (c.idea && !ideasOn()) return false; return c.site === 'all' ? scopeIds().length > 0 : inScope(c.site); }
 function compState(c){
   const n = daysFromToday(d(c.due));
   if (n < 0) return { key:'overdue', cls:'p-warn', label:`${-n} day${n === -1 ? '' : 's'} overdue` };
@@ -1982,7 +2149,7 @@ function renderCompliance(){
       <tbody>${rows.length ? rows.map(c => { const st = compState(c); return `<tr class="click" tabindex="0" onclick="openComp('${c.id}')" onkeydown="if(event.key==='Enter')openComp('${c.id}')">
         <td class="t-main">${esc(c.name)}<span class="sub">${esc(c.ref)} · ${esc(c.freq)}</span></td><td>${c.site === 'all' ? 'All sites' : esc(siteName(c.site))}</td><td>${esc(COMP_CATS[c.cat])}</td>
         <td>${fmtDY(d(c.last))}</td><td><span class="pill ${st.cls}">${st.label}</span>${c.req && REQ[c.req] ? `<span class="sub">Request ${c.req}</span>` : ''}</td>
-        <td>${c.vendor ? esc(VENDOR[c.vendor].name) : '<span class="muted">Operations</span>'}</td><td>${c.proof ? `<span class="pill p-good">${ic('check')}On file</span>` : '<span class="pill p-warn">Missing</span>'}</td></tr>`; }).join('')
+        <td>${c.staff ? `<span class="pill p-amber">Site staff</span> ${ideaBadge()}` : c.vendor ? esc(VENDOR[c.vendor].name) : '<span class="muted">Operations</span>'}</td><td>${c.proof ? `<span class="pill p-good">${ic('check')}On file</span>` : '<span class="pill p-warn">Missing</span>'}</td></tr>`; }).join('')
       : `<tr><td colspan="7"><div class="empty">Nothing here. Everything in this view is current.</div></td></tr>`}</tbody></table></div>
   </div>`;
 }
@@ -1992,7 +2159,7 @@ function openComp(id){
       <div class="btn-row"><span class="pill ${st.cls}">${st.label}</span>${c.proof ? '' : '<span class="pill p-warn">Proof missing</span>'}</div></div>${X_BTN}</div>
     <div class="panel-body"><section class="psec"><dl class="kv">
       <dt>Where</dt><dd>${c.site === 'all' ? 'All sites' : esc(siteName(c.site))}</dd><dt>How often</dt><dd>${esc(c.freq)}</dd><dt>Requirement</dt><dd>${esc(c.ref)}</dd>
-      <dt>Last done</dt><dd>${fmtDY(d(c.last))}</dd><dt>Next due</dt><dd>${fmtDY(d(c.due))} (${dueText(d(c.due))})</dd><dt>Vendor</dt><dd>${c.vendor ? esc(VENDOR[c.vendor].name) : 'Operations handles it'}</dd>
+      <dt>Last done</dt><dd>${fmtDY(d(c.last))}</dd><dt>Next due</dt><dd>${fmtDY(d(c.due))} (${dueText(d(c.due))})</dd><dt>Done by</dt><dd>${c.staff ? `Site staff. The site PM gets the reminder. ${ideaBadge()} <button type="button" class="link" onclick="explain('idea_staff')">What would this take?</button>` : c.vendor ? esc(VENDOR[c.vendor].name) : 'Operations handles it'}</dd>
       <dt>Reminders</dt><dd>30 days before, then weekly → Operations (per Notification rules)</dd>
       <dt>Certificate</dt><dd>${c.proof ? `<button type="button" class="link" onclick="explain('viewProof')">${ic('doc')} ${esc(c.name.replace(/[^A-Za-z]+/g, '-').toLowerCase())}-${d(c.last).getFullYear()}.pdf</button>` : '<span class="late">Not on file for the last one</span>'}</dd>
       ${c.req && REQ[c.req] ? `<dt>Request</dt><dd><button type="button" class="link" onclick="openReq('${c.req}')">${c.req} · ${statusPill(REQ[c.req])}</button></dd>` : ''}
@@ -2078,7 +2245,7 @@ function renderAssets(){
     <div class="table-wrap"><table class="table"><thead><tr><th>Tag</th><th>Equipment</th><th>Where</th><th>Status</th><th>Condition</th><th class="num">Open requests</th></tr></thead>
       <tbody>${rows.length ? rows.map(a => { const open = REQUESTS.filter(r => r.asset === a.tag && OPEN.includes(r.status) && (optOn() || r.src === 'request')).length;
         return `<tr class="click" tabindex="0" onclick="openAsset('${a.tag}')" onkeydown="if(event.key==='Enter')openAsset('${a.tag}')"><td><span class="tag">${a.tag}</span></td>
-        <td class="t-main">${esc(a.name)}<span class="sub">${esc(a.make)} · ${a.year}${a.miles ? ` · ${a.miles.toLocaleString()} mi` : ''}</span></td><td>${esc(siteName(a.site))}<span class="sub">${esc(a.loc)}</span></td>
+        <td class="t-main">${esc(a.name)}<span class="sub">${esc(a.make)} · ${a.year}${a.miles ? ` · ${a.miles.toLocaleString()} mi` : ''}</span>${ideasOn() && ASSET_WARRANTY[a.tag] ? `<span class="sub">Warranty to ${MON[d(ASSET_WARRANTY[a.tag].until).getMonth()]} ${d(ASSET_WARRANTY[a.tag].until).getFullYear()} ${ideaBadge()}</span>` : ''}</td><td>${esc(siteName(a.site))}<span class="sub">${esc(a.loc)}</span></td>
         <td>${assetStatusPill(a)}</td><td>${condDot(a)}</td><td class="num">${open || '—'}</td></tr>`; }).join('') : `<tr><td colspan="6"><div class="empty">No equipment matches.</div></td></tr>`}</tbody></table></div>
   </div>`;
 }
@@ -2089,6 +2256,7 @@ function openAsset(tag){
       <div class="btn-row">${assetStatusPill(a)}${condDot(a)}</div></div>${X_BTN}</div>
     <div class="panel-body">
       <section class="psec"><dl class="kv"><dt>Where</dt><dd>${esc(siteName(a.site))} › ${esc(a.loc)}</dd><dt>Make</dt><dd>${esc(a.make)}</dd><dt>Installed</dt><dd>${a.year} (${2026 - a.year} years)</dd>
+        ${ideasOn() ? `<dt>Warranty ${ideaBadge()}</dt><dd>${ASSET_WARRANTY[a.tag] ? `Until ${fmtDY(d(ASSET_WARRANTY[a.tag].until))} · ${esc(ASSET_WARRANTY[a.tag].who)}` : 'None on file'} <button type="button" class="link" onclick="explain('idea_warranty')">What would this take?</button></dd>` : ''}
         ${a.miles ? `<dt>Odometer</dt><dd>${a.miles.toLocaleString()} mi · next service at ${a.nextMiles.toLocaleString()} mi ${canManage() ? `<button type="button" class="link" onclick="logMiles('${tag}')">Update</button>` : ''}</dd>` : ''}
         <dt>Repair spend</dt><dd>${money(spent)} on ${hist.length} request${hist.length === 1 ? '' : 's'}</dd>
         <dt>Manual</dt><dd><button type="button" class="link" onclick="explain('openDoc')">${ic('doc')} ${esc(a.make.split(' ')[0].toLowerCase())}-manual.pdf</button></dd></dl></section>
@@ -2128,6 +2296,91 @@ function renderKitchens(){
           <div><div class="section-label" style="margin-bottom:4px">Compliance dates</div><div class="list">${comp.map(c => { const st = compState(c); return `<button type="button" class="li" onclick="openComp('${c.id}')"><div class="li-main"><div class="li-title">${esc(c.name)}</div><div class="li-meta">${esc(c.freq)} · ${esc(c.ref)}</div></div><div class="li-right"><span class="pill ${st.cls}">${st.label}</span><span>${fmtD(d(c.due))}</span></div></button>`; }).join('')}</div></div>
           <div><div class="section-label" style="margin-bottom:4px">Open kitchen requests</div>${reqs.length ? `<div class="list">${reqs.map(r => reqLi(r)).join('')}</div>` : '<div class="muted" style="font-size:13px;padding-top:8px">None open.</div>'}</div>
         </div></section>`; }).join('') || `<div class="card empty">None of your sites has a full kitchen.</div>`}</div>
+  </div>`;
+}
+
+/* ════════════════════════ ADD TO MY CALENDAR (core) ════════════════════════ */
+function calOne(id, i){
+  const r = REQ[id], v = r.v[i];
+  explain('calOne', { id, vendor: VENDOR[r.vendor]?.name || 'the vendor', when: `${WD[d(v.at).getDay()]} ${fmtD(d(v.at))}, ${visitWindow(v)}`, where: whereText(r) });
+}
+function calAll(which){
+  const mine = which === 'mine', list = mine ? upcomingVisits(7, myRequests()) : upcomingVisits(14);
+  explain('calAll', { n: list.length, scope: mine ? 'on your requests this week' : 'at your sites in the next 14 days' });
+}
+
+/* ════════════════════════ IDEAS — UI pieces ════════════════════════ */
+(() => {   // one more idea-only example: an owner's-responsibility request that's still open
+  const r = { id:'MR-2026-0400', at:'2026-09-22T08:15', site:'stark', loc:'Dining room', cat:'roof', pri:'urgent', status:'new', by:'Theo Grant',
+    title:'Roof leak over the dining room', desc:'Water is dripping from two ceiling tiles near the serving line after this morning’s rain. Buckets are out.',
+    v:[], c:[], log:[], ev:[], src:'request', idea:true };
+  REQUESTS.push(r); REQ[r.id] = r;
+})();
+function dupCheck(f){
+  if (!f.cat) return '';
+  const dups = REQUESTS.filter(r => r.site === f.site && r.cat === f.cat && r.src === 'request' && OPEN.includes(r.status) && (!f.loc || r.loc === f.loc)).sort(byNewest).slice(0, 3);
+  if (!dups.length) return '';
+  return `<section class="form-sec idea-card"><div class="form-sec-head">${ic('search')}<h2 class="form-sec-title">Is it one of these? ${ideaBadge()}</h2></div>
+    <p class="field-hint" style="margin-bottom:6px">Open ${esc(catLabel(f.cat).toLowerCase())} requests at ${esc(siteName(f.site))}${f.loc ? ' › ' + esc(f.loc) : ''}. If it’s the same problem, follow it instead of reporting it again.</p>
+    <div class="list">${dups.map(r => `<div class="li"><div class="li-main"><div class="li-title">${esc(r.title)}</div>
+      <div class="li-meta"><span class="mono">${r.id}</span><span>${esc(r.loc)}</span><span>${ago(d(r.at))}</span>${statusPill(r)}</div></div>
+      <div class="li-right"><button type="button" class="btn btn-sm" onclick="followReq('${r.id}')">Same problem: follow it</button></div></div>`).join('')}</div>
+    <button type="button" class="link" style="margin-top:6px" onclick="explain('idea_dup')">What would this take?</button></section>`;
+}
+function followReq(id){
+  explain('followReq', { id }, () => {
+    const r = REQ[id]; (r.followers ||= []).push(me().person);
+    logEv(r, 'user', `<b>${esc(me().person)}</b> also reported this and is following it`);
+    state.form = newForm(); render(); openReq(id);
+  });
+}
+function reqIdeaNotes(r, manage){
+  let h = '';
+  const reps = repeatsFor(r);
+  if (reps.length) h += ideaNote('repeat', `<b>Repeat problem:</b> ${reps.length + 1} requests for ${esc(catLabel(r.cat).toLowerCase())} at ${esc(r.loc)} in 12 months (${[...reps, r].sort((a, b) => d(a.at) - d(b.at)).map(x => fmtD(d(x.at))).join(', ')}). It may be worth fixing the cause, not just the symptom.`,
+    'idea_repeat', reps.map(x => `<button type="button" class="link" onclick="openReq('${x.id}')">${x.id}</button>`).join(''));
+  const own = landlordFor(r);
+  if (own) h += ideaNote('building', `<b>Owner’s responsibility:</b> ${esc(catLabel(r.cat).toLowerCase())} at ${esc(siteName(r.site))} (${esc(own.tenure.toLowerCase())}) is covered by ${esc(own.owner.toLowerCase())}. Call (503) 555-0170 before booking a vendor.`,
+    'idea_landlord', manage && OPEN.includes(r.status) ? `<button type="button" class="btn btn-sm" onclick="ownerSent('${r.id}')">Mark sent to owner</button>` : '');
+  const w = warrantyFor(r);
+  if (w) h += ideaNote('shield', `<b>Under warranty</b> until ${fmtDY(d(w.until))} (${esc(w.who)}). Check coverage before paying for parts.`, 'idea_warranty');
+  return h;
+}
+function ownerSent(id){ explain('ownerSent', {}, () => { logEv(REQ[id], 'building', `<b>${esc(me().person)}</b> sent it to the owner`); refresh(); }); }
+function checklistSection(r){
+  const done = r.checklist.filter(x => x[1]).length;
+  return `<section class="psec"><div class="psec-head"><h3 class="section-label">Make-ready checklist ${ideaBadge()}</h3><span class="card-sub">${done} of ${r.checklist.length} done</span></div>
+    ${r.needBy ? `<div class="note amber" style="margin-bottom:8px">${ic('cal')}<span>Needed by <b>${WD[d(r.needBy).getDay()]} ${fmtD(d(r.needBy))}</b> for move-in</span></div>` : ''}
+    <div>${r.checklist.map(([t, ok], i) => `<label class="check-row${ok ? ' done' : ''}"><input type="checkbox" ${ok ? 'checked' : ''} onchange="toggleCheck('${r.id}',${i})"><span>${esc(t)}</span></label>`).join('')}</div>
+    <button type="button" class="link" style="margin-top:6px" onclick="explain('idea_turnover')">What would this take?</button></section>`;
+}
+function toggleCheck(id, i){
+  const r = REQ[id], item = r.checklist[i]; item[1] = !item[1];
+  logEv(r, 'check', `<b>${esc(me().person)}</b> ${item[1] ? 'checked off' : 'unchecked'} “${esc(item[0])}”`);
+  toast('Checklist updated'); openReq(id);
+}
+function siteInfoSection(r){
+  const s = SITE[r.site], x = siteFacts(s), own = SITE_IDEA[r.site];
+  return `<section class="psec"><details><summary>Site info: shutoffs & access ${ideaBadge()}</summary>
+    <dl class="kv"><dt>Water shutoff</dt><dd>${esc(x.water)}</dd><dt>Gas shutoff</dt><dd>${esc(x.gas)}</dd><dt>Electrical panel</dt><dd>${esc(x.power)}</dd>
+      <dt>Vendor access</dt><dd>${esc(x.access)}</dd><dt>Hazmat notes</dt><dd>${esc(x.hazmat)}</dd>${own ? `<dt>Tenure</dt><dd>${esc(own.tenure)}</dd>` : ''}</dl>
+    <button type="button" class="link" style="margin-top:8px" onclick="explain('idea_siteinfo')">What would this take?</button></details></section>`;
+}
+function overviewIdeas(){
+  const byFund = {};
+  scopeIds().forEach(id => { const f = SITE_IDEA[id]?.fund || 'General operating'; byFund[f] = (byFund[f] || 0) + Object.values(SPEND[id]).reduce((s, v) => s + v, 0); });
+  reqsInScope().forEach(r => r.c.forEach(c => { const f = fundOf(r, c); byFund[f] = (byFund[f] || 0) + c.amt; }));
+  const rows = Object.entries(byFund).map(([f, v]) => ({ label:f, v:Math.round(v), tip:`<b>${esc(f)}</b><br>${money(Math.round(v))} since July 1` })).sort((a, b) => b.v - a.v);
+  const groups = {};
+  reqsInScope().filter(r => r.src === 'request' && r.status !== 'cancelled' && TODAY - d(r.at) < 365 * DAY).forEach(r => { (groups[`${r.site}|${r.loc}|${r.cat}`] ||= []).push(r); });
+  const reps = Object.values(groups).filter(g => g.length >= 2).sort((a, b) => b.length - a.length);
+  return `<div class="grid g-2" style="margin-top:14px">
+    <section class="card idea-card"><div class="card-head"><h2 class="card-title">Spending by funding source ${ideaBadge()}</h2><button type="button" class="link" onclick="explain('idea_fund')">What would this take?</button></div>${hbars(rows, v => money(v))}</section>
+    <section class="card idea-card"><div class="card-head"><h2 class="card-title">Repeat problems, last 12 months ${ideaBadge()}</h2><button type="button" class="link" onclick="explain('idea_repeat')">What would this take?</button></div>
+      ${reps.length ? `<div class="list">${reps.map(g => { const s = g.slice().sort((a, b) => d(a.at) - d(b.at)), last = s[s.length - 1];
+        return `<button type="button" class="li" onclick="openReq('${last.id}')"><div class="li-main"><div class="li-title">${esc(siteName(last.site))} › ${esc(last.loc)}</div>
+          <div class="li-meta"><span>${esc(catLabel(last.cat))}</span><span>${s.map(x => fmtD(d(x.at))).join(', ')}</span></div></div>
+          <div class="li-right"><span class="pill p-warn">${ic('repeat')}${g.length} times</span></div></button>`; }).join('')}</div>` : '<div class="empty">No repeat problems at your sites.</div>'}</section>
   </div>`;
 }
 
