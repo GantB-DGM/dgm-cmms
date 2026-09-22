@@ -22,15 +22,16 @@ All people, vendors, and figures in the prototype are sample data.
 
 **Core (v1)**
 
-- Anyone at DGM can report a problem: site, exact location (pod, room, or unit), category, guided urgency questions, and photos.
-- Requesters track their own requests. PMs see their sites, SPMs see the sites they oversee, and Operations sees and manages everything. Admin can also change settings. PM and SPM assignments come from the Sites list shared with the Incident Reporting app.
+- Anyone at DGM can report a problem: site, exact location (pod, room, or unit), category, guided urgency questions, and photos. An "Already reported?" check shows open requests at that site first, so people follow an existing request instead of filing a duplicate.
+- All staff, including Team Leads, see every request at their own site, but not costs, vendor contacts, or internal notes. PMs see their sites, SPMs see the sites they oversee, and Operations sees and manages everything. Admin can also change settings. PM and SPM assignments come from the Sites list shared with the Incident Reporting app.
+- SharePoint can't hide individual columns, so costs, internal notes, and vendor contacts live in separate lists that staff can't read.
 - Operations assigns vendors, books site visits, records costs, and closes requests. The app never contacts vendors.
 - Each notification can go by any mix of Teams channel post, Teams chat, and email. Admins configure this in Settings.
 - **Add to my calendar**: any booked vendor visit (or all upcoming visits) can be saved as an Outlook calendar file (`.ics`), built in the browser with no flow.
 
 **Optional modules** (keep or cut after stakeholder review): compliance dates, equipment with QR labels, kitchens, recurring vendor services.
 
-**Ideas** (not planned; each shows a rough build cost in the prototype): duplicate check, warranty tracking, vendor insurance, owner vs. DGM responsibility, charging costs to funding sources, unit turnover checklists, repeat-problem flags, site emergency info, checks done by site staff.
+**Ideas** (not planned; each shows a rough build cost in the prototype): warranty tracking, vendor insurance, owner vs. DGM responsibility, charging costs to funding sources, unit turnover checklists, repeat-problem flags, site emergency info, checks done by site staff.
 
 ## Planned architecture
 
@@ -39,7 +40,7 @@ This follows the Incident Reporting app's pattern: the logic lives in the SPFx a
 | Piece | Job |
 |---|---|
 | SPFx web part | UI, request numbers (`MR-2026-0001`), response targets, site scoping, notification rules, message content, recurring requests |
-| SharePoint lists | `MaintenanceRequests`, `RequestVisits`, `Vendors`, `Locations`, `NotificationRules`, `NotificationQueue`, `MaintenanceSettings`; optional: `RecurringServices`, `ComplianceItems`, `Assets` |
+| SharePoint lists | `MaintenanceRequests`, `RequestVisits`, `RequestFollowers`, `Vendors`, `Locations`, `NotificationRules`, `NotificationQueue`, `MaintenanceSettings`; restricted to Operations, PMs, SPMs, and Admin: `RequestCosts`, `RequestNotes`; optional: `RecurringServices`, `ComplianceItems`, `Assets` |
 | Flow 1: relay | Sends each queued message: email from a shared mailbox, and Teams posts as the Flow bot. It contains no logic. |
 | Flow 2: hourly check | Queues "past response target" alerts |
 | Hosts | SharePoint page, Teams tab, Teams personal app (all the same web part) |

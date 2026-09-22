@@ -859,13 +859,21 @@ const REQUESTS = [
     v:[{ at:'2026-09-21T20:00', end:'21:30', what:'Emergency diagnosis', done:true },
        { at:'2026-09-22T15:00', end:'17:00', what:'Replace water heater element' }],
     c:[{ what:'After-hours emergency call', amt:295, inv:'NG-40291' }],
-    log:[{ at:'2026-09-21T21:40', who:'Dana Whitfield', text:'The element failed. Northgate is picking up the part tomorrow morning. Showers are closed tonight. Residents can use the day center showers at 82nd.' }] },
+    log:[{ at:'2026-09-21T21:40', who:'Dana Whitfield', text:'The element failed. Northgate is picking up the part tomorrow morning. Showers are closed tonight. Residents can use the day center showers at 82nd.' },
+         { at:'2026-09-22T08:05', who:'Dana Whitfield', text:'Northgate’s after-hours rate is double. Approved the $295 call-out since 30 residents have no hot water.', internal:true }] },
   { id:'MR-2026-0417', at:'2026-09-22T06:40', site:'stark', loc:'Lobby & check-in', cat:'doors', pri:'emergency', status:'new', by:'Quinn Foster', ir:'IR-2026-0472', ph:1,
     title:"Front entrance door won't latch or lock", desc:'The front door was damaged in an attempted break-in overnight. It will not latch or lock. Staff are posted at the door.' },
   { id:'MR-2026-0418', at:'2026-09-22T07:12', site:'arbor', loc:'Kitchen — walk-ins', cat:'kitchen', pri:'emergency', status:'scheduled', by:'Morgan Ellis', vendor:'coldcraft', ph:2,
     title:'Walk-in cooler reading 46°F', desc:'The walk-in cooler is at 46°F. It should be at or below 41°F. The compressor is running constantly. We moved dairy and meat to the reach-in.',
     v:[{ at:'2026-09-22T11:00', end:'13:00', what:'Emergency refrigeration service' }],
     log:[{ at:'2026-09-22T07:20', who:'Dana Whitfield', text:'Called ColdCraft. A tech will be on site by 11 am.' }] },
+
+  { id:'MR-2026-0393', at:'2026-09-14T20:10', site:'kiggins', loc:'Pod 21', cat:'doors', pri:'urgent', status:'done', done:'2026-09-15T15:00', by:'Avery Lin', vendor:'keyline',
+    title:'Pod 21 door won’t lock', desc:'The deadbolt spins without catching. The resident is staying in the community building tonight.',
+    v:[{ at:'2026-09-15T13:00', end:'15:00', what:'Replace deadbolt', done:true, unit:true }], c:[{ what:'Deadbolt replaced', amt:165, inv:'KL-2231' }] },
+  { id:'MR-2026-0399', at:'2026-09-19T17:30', site:'kiggins', loc:'Laundry', cat:'appl', pri:'routine', status:'scheduled', by:'Rowan Price', vendor:'cornerstone',
+    title:'Washer 2 won’t drain', desc:'Washer 2 stops mid-cycle with water still in the drum. There’s a sign on it for now.',
+    v:[{ at:'2026-09-25T10:00', end:'12:00', what:'Diagnose drain pump' }] },
 
   /* From optional modules (hidden when Modules = Core) */
   { id:'MR-2026-0420', at:'2026-08-27T05:00', site:'stark', loc:'Exterior & parking', cat:'plumb', pri:'planned', status:'scheduled', by:'Compliance tracker', src:'compliance', vendor:'northgate', due:'2026-09-10',
@@ -1111,13 +1119,13 @@ function scopeIds(){
   if (r === 'ops' || r === 'admin') return ALL_SITE_IDS;
   if (r === 'pm')  return SITES.filter(s => s.pm === me().person).map(s => s.id);
   if (r === 'spm') return SITES.filter(s => s.spm === me().person).map(s => s.id);
-  return [];
+  return [me().home];   // staff & Team Leads: every request at their own site (site comes from their M365 profile, like IR)
 }
 const inScope = id => scopeIds().includes(id);
 function scopeChip(){
   const r = state.role, ids = scopeIds();
   const what = (r === 'ops' || r === 'admin') ? 'All 18 sites' : ids.length === 1 ? SITE[ids[0]].name : `${ids.length} sites: ${ids.map(i => SITE[i].name).join(', ')}`;
-  const why = { pm:'you are the PM in the Sites list', spm:'you are the SPM in the Sites list', ops:'Operations has full access', admin:'Admin has full access' }[r];
+  const why = { staff:'your site, from your Microsoft 365 profile', pm:'you are the PM in the Sites list', spm:'you are the SPM in the Sites list', ops:'Operations has full access', admin:'Admin has full access' }[r];
   return `<span class="scope-chip">${ic('pin')}<span>Showing <b>${esc(what)}</b> · ${why}</span></span>`;
 }
 const byNewest = (a, b) => d(b.at) - d(a.at);
@@ -1169,8 +1177,8 @@ const EXPLAIN = {
     ['teams', r.pri === 'emergency' ? 'Emergency: posts a red card in the Operations › Maintenance channel, sends a Teams chat and email to Operations, and sends a Teams chat to the site PM and SPM.' : 'Posts a card in the Operations › Maintenance Teams channel, and sends the site PM a Teams chat.'],
     ['mail', 'Sends you a confirmation by Teams chat and email with a link back to the request.'] ],
     demo:'The request is added to this page’s sample data. You can follow it in My requests and in the Requests queue.' }),
-  comment: () => ({ title:'Post comment', go:'Post comment', real:[
-    ['list', 'Adds a comment to the request’s timeline with your name and the time.'],
+  comment: c => ({ title: c.internal ? 'Post internal note' : 'Post comment', go: c.internal ? 'Post note' : 'Post comment', real:[
+    ['list', c.internal ? 'Saves the note to a separate <code>RequestNotes</code> list that only Operations, PMs, SPMs, and Admin can read, so staff can’t see it anywhere, including through SharePoint itself.' : 'Adds a comment to the request’s timeline with your name and the time. Everyone who can see the request can read it, including staff at that site.'],
     ['spfx', 'The app applies the “New comment” rule and queues a Teams chat to the requester and Operations (the defaults). The relay flow delivers it.'] ],
     demo:'Your comment appears in the timeline.', toast:'Comment posted' }),
   status: c => ({ title:`Change status to “${STATUS[c.to].label}”`, go:'Update status', real:[
@@ -1293,10 +1301,9 @@ Object.assign(EXPLAIN, {
     ['spfx', `The app builds one calendar file (<code>.ics</code>) with all ${c.n} upcoming visit${c.n === 1 ? '' : 's'} ${c.scope}. Each has the vendor, time window, location, access notes, and a link back to its request.`],
     ['cal', 'Opening it adds every visit to your Outlook calendar at once, each with a 30-minute reminder. Visits already added are updated, not duplicated.'] ],
     demo:'No file is created in this demo.' }),
-  idea_dup: () => ({ title:'Idea: duplicate check', go:'OK', real:[
-    ['spfx', 'As someone fills in the form, the app looks for open requests at the same site in the same category (and location, if picked).'],
-    ['list', 'If it’s the same problem, they follow the existing request instead of filing a new one: a <code>RequestFollowers</code> list stores who else reported it and their note. Staff can add to that list even though they can’t edit other people’s requests.'],
-    ['info', '<b>Build cost:</b> small. One lookup on the form, one new list, no flow.'] ], demo: IDEA_DEMO }),
+  dupCheck: () => ({ title:'Already reported?', go:'OK', real:[
+    ['spfx', 'As someone fills in the form, the app looks up open requests at the same site in the same category (and location, if picked). Everyone at a site can see its requests, so nobody has to guess.'],
+    ['list', 'Following adds you to a <code>RequestFollowers</code> list with an optional note. You get the same Teams and email updates as the person who reported it, and Operations sees who else is affected.'] ] }),
   idea_warranty: () => ({ title:'Idea: warranty tracking', go:'OK', real:[
     ['list', 'Adds Warranty end and Warranty contact columns to the <code>Assets</code> list.'],
     ['spfx', 'Requests linked to that equipment show a warranty notice, so Operations checks coverage before paying for parts.'],
@@ -1330,7 +1337,7 @@ Object.assign(EXPLAIN, {
     ['list', 'Compliance items get a “Done by: site staff” option for simple monthly checks (extinguishers, emergency lights, detectors).'],
     ['spfx', 'The site PM gets the reminder. Staff mark the check done from their phone, optionally by scanning a QR label on the extinguisher.'],
     ['info', '<b>Build cost:</b> small to medium. One column, a staff view of checks, no flow. Needs the optional Compliance module.'] ], demo: IDEA_DEMO }),
-  followReq: c => ({ title:`Follow ${c.id} instead`, go:'Follow request', real:[
+  followReq: c => ({ title:`Follow ${c.id}`, go:'Follow request', real:[
     ['list', 'Adds you to <code>RequestFollowers</code> for that request, with your note. No new request is created.'],
     ['spfx', 'You get the same Teams and email updates as the original requester, and Operations sees “+1 also reported this.”'] ],
     demo:'You’re added as a follower and the request opens.', toast:`You’re following ${c.id}` }),
@@ -1374,7 +1381,7 @@ function fallbackCopy(text, done){ const ta = document.createElement('textarea')
 const ALL = ['staff','pm','spm','ops','admin'], MGR = ['pm','spm','ops','admin'];
 const TABS = [
   { id:'overview',   label:'Overview',         roles:MGR },
-  { id:'requests',   label:'Requests',         roles:MGR, count:() => canManage() ? reqsInScope().filter(r => r.status === 'new').length : 0 },
+  { id:'requests',   label:() => state.role === 'staff' ? 'Site requests' : 'Requests', roles:ALL, count:() => canManage() ? reqsInScope().filter(r => r.status === 'new').length : 0 },
   { id:'schedule',   label:'Schedule',         roles:MGR },
   { id:'compliance', label:'Compliance',       roles:MGR, opt:true },
   { id:'assets',     label:'Equipment',        roles:MGR, opt:true },
@@ -1392,7 +1399,7 @@ function renderNav(){
   $('nav').innerHTML = tabs.map(t => {
     if (t.spacer) return '<span class="nav-spacer"></span>';
     const n = t.count ? t.count() : 0;
-    return `<button type="button" class="nav-tab${t.id === state.tab ? ' active' : ''}${t.cta ? ' cta' : ''}" onclick="go('${t.id}')" ${t.id === state.tab ? 'aria-current="page"' : ''}>${t.cta ? ic('plus') : ''}${t.label}${t.opt ? ' ' + optBadge() : ''}${n ? `<span class="nav-count" title="${n} new">${n}</span>` : ''}</button>`;
+    return `<button type="button" class="nav-tab${t.id === state.tab ? ' active' : ''}${t.cta ? ' cta' : ''}" onclick="go('${t.id}')" ${t.id === state.tab ? 'aria-current="page"' : ''}>${t.cta ? ic('plus') : ''}${typeof t.label === 'function' ? t.label() : t.label}${t.opt ? ' ' + optBadge() : ''}${n ? `<span class="nav-count" title="${n} new">${n}</span>` : ''}</button>`;
   }).join('');
 }
 function renderChrome(){
@@ -1548,8 +1555,8 @@ function renderRequests(){
   const siteOpts = scopeIds().map(id => `<option value="${id}"${f.site === id ? ' selected' : ''}>${esc(siteName(id))}</option>`).join('');
   const catOpts = CATS.filter(c => all.some(r => r.cat === c.id)).map(c => `<option value="${c.id}"${f.cat === c.id ? ' selected' : ''}>${esc(c.label)}</option>`).join('');
   return `<div class="page">
-    <div class="page-head"><div><h1 class="page-title">Requests</h1><div class="page-sub">${canManage() ? 'Review, book vendors, and track every request to done.' : 'All requests at your sites. You can open any request and add comments.'}</div></div>${scopeChip()}</div>
-    ${bn('<b>Requests</b> · <b>MaintenanceRequests</b> list (indexed: Site, Status, Priority, Created). Filtering and sorting happen in SPFx. Response targets are stored as <b>TargetAt</b> when a request is created or its priority changes.')}
+    <div class="page-head"><div><h1 class="page-title">${state.role === 'staff' ? 'Site requests' : 'Requests'}</h1><div class="page-sub">${canManage() ? 'Review, book vendors, and track every request to done.' : state.role === 'staff' ? `Everything reported at ${esc(siteName(me().home))}. Check here first: if it’s already reported, follow it instead of reporting it again.` : 'All requests at your sites. You can open any request and add comments.'}</div></div>${scopeChip()}</div>
+    ${bn('<b>Requests</b> · <b>MaintenanceRequests</b> list (indexed: Site, Status, Priority, Created). Filtering and sorting happen in SPFx. Response targets are stored as <b>TargetAt</b> when a request is created or its priority changes. <b>Staff</b> see every request at their own site. Costs, internal notes, and vendor contacts live in separate lists that staff can’t read (SharePoint has no column-level permissions).')}
     <div class="filters" role="group" aria-label="Views">
       ${RQ_VIEWS.map(v => { const n = all.filter(v.fn).length; return `<button type="button" class="chip" aria-pressed="${f.view === v.id}" onclick="state.rq.view='${v.id}';render()">${v.label}<span class="n">${n}</span></button>`; }).join('')}
     </div>
@@ -1558,8 +1565,8 @@ function renderRequests(){
       ${scopeIds().length > 1 ? `<select class="fsel" id="rqSite" aria-label="Site" onchange="state.rq.site=this.value;renderRqTable()"><option value="">All my sites</option>${siteOpts}</select>` : ''}
       <select class="fsel" id="rqCat" aria-label="Category" onchange="state.rq.cat=this.value;renderRqTable()"><option value="">All categories</option>${catOpts}</select>
       <span style="flex:1"></span>
-      <button type="button" class="btn btn-sm" onclick="explain('exportCsv')">${ic('doc')}Export to Excel</button>
-      <button type="button" class="btn btn-sm btn-primary" onclick="go('report')">${ic('plus')}New request</button>
+      ${state.role === 'staff' ? '' : `<button type="button" class="btn btn-sm" onclick="explain('exportCsv')">${ic('doc')}Export to Excel</button>`}
+      <button type="button" class="btn btn-sm btn-primary" onclick="go('report')">${ic('plus')}${state.role === 'staff' ? 'Report a problem' : 'New request'}</button>
     </div>
     <div id="rqTable">${rqTableHtml()}</div>
   </div>`;
@@ -1618,7 +1625,7 @@ function activity(r){
   });
   r.c.forEach(c => { const last = r.v.filter(v => v.done).map(visitEnd).sort((a, b) => b - a)[0] || plusMin(sub, 90); if (!c.added) add(plusMin(last, 30), 'dollar', `Cost added: ${esc(c.what)} · ${money(c.amt)} · invoice ${esc(c.inv)}`); });
   if (r.status === 'waiting' && r.wait && !r.ev.some(e => e.status)){ const lv = r.v.filter(v => v.done).map(visitEnd).sort((a, b) => b - a)[0] || plusMin(sub, 120); add(plusMin(lv, 45), 'clock', `Status set to Waiting: ${esc(r.wait)}`); }
-  r.log.forEach(l => add(l.at, 'chat', `<b>${esc(l.who)}</b> commented`, { comment:l.text }));
+  r.log.forEach(l => add(l.at, l.internal ? 'lock' : 'chat', `<b>${esc(l.who)}</b> ${l.internal ? 'added an internal note' : 'commented'}`, { comment:l.text, internal:l.internal }));
   if (r.status === 'done' && r.done && !r.ev.some(e => e.status)){ add(r.done, 'check', `<b>${esc(OPS_NAME)}</b> marked it completed`); notesFor('done', r).forEach(n => add(plusMin(d(r.done), 1), n.icon, esc(n.text), { note:n })); }
   r.ev.forEach(e => add(e.at, e.icon, e.html, e));
   return A.sort((a, b) => a.at - b.at);
@@ -1627,6 +1634,7 @@ function activity(r){
 function openReq(id, keep){
   const r = REQ[id]; state.panel = { kind:'req', id };
   const manage = canManage(), mine = r.by === me().person, isMgr = MGR.includes(state.role);
+  const siteStaff = state.role === 'staff' && inScope(r.site), canComment = isMgr || mine || siteStaff, following = (r.followers || []).includes(me().person);
   const ti = targetInfo(r), v = r.vendor ? VENDOR[r.vendor] : null;
   const suggested = VENDORS.filter(x => x.cats.includes(r.cat)), others = VENDORS.filter(x => !x.cats.includes(r.cat));
   const costTotal = r.c.reduce((s, x) => s + x.amt, 0);
@@ -1635,7 +1643,7 @@ function openReq(id, keep){
       <div class="panel-kicker">${r.id} · ${esc(catLabel(r.cat))}${r.src !== 'request' ? ' · from ' + (r.src === 'recurring' ? 'recurring service' : 'compliance date') : ''}</div>
       <h2 class="panel-title">${esc(r.title)}</h2>
       <div class="btn-row">${priPill(r.pri)}${statusPill(r)}${isLate(r) ? '<span class="pill p-warn">Past target</span>' : ''}</div>
-      <div class="li-meta" style="margin-top:8px">${ic('pin')}<span>${esc(whereText(r))}</span>${optOn() && r.asset ? `<button type="button" class="link" onclick="openAsset('${r.asset}')">${r.asset} · ${esc(ASSET[r.asset].name)}</button>` : ''}</div>
+      <div class="li-meta" style="margin-top:8px">${ic('pin')}<span>${esc(whereText(r))}</span>${optOn() && r.asset && isMgr ? `<button type="button" class="link" onclick="openAsset('${r.asset}')">${r.asset} · ${esc(ASSET[r.asset].name)}</button>` : ''}</div>
     </div>${X_BTN}</div>
   <div class="panel-body">
     <div class="target-bar ${ti.cls}">${ic(ti.icon)}<span>${ti.text}</span></div>
@@ -1649,7 +1657,8 @@ function openReq(id, keep){
         <dt>Submitted</dt><dd>${esc(r.by)} · ${fmtDT(d(r.at))}</dd>
         ${r.src === 'request' ? `<dt>Contact</dt><dd>${esc(emailOf(r.by))}</dd>` : ''}
         ${r.access ? `<dt>Access notes</dt><dd>${esc(r.access)}</dd>` : ''}
-        ${r.ir ? `<dt>Incident report</dt><dd><button type="button" class="link" onclick="explain('openIR',{ir:'${r.ir}'})">${ic('link')} ${r.ir}</button></dd>` : ''}
+        ${r.ir && (isMgr || mine) ? `<dt>Incident report</dt><dd><button type="button" class="link" onclick="explain('openIR',{ir:'${r.ir}'})">${ic('link')} ${r.ir}</button></dd>` : ''}
+        ${r.followers?.length ? `<dt>Also reported by</dt><dd>${esc(r.followers.join(', '))}</dd>` : ''}
         <dt>Response target</dt><dd>${r.pri === 'planned' ? 'By the due date' : PRI[r.pri].target + ' to get a vendor on site'}</dd>
       </dl>
     </section>
@@ -1658,8 +1667,7 @@ function openReq(id, keep){
     <section class="psec"><div class="psec-head"><h3 class="section-label">Vendor & visits</h3>${manage && v ? `<button type="button" class="link" onclick="toggleEl('vendorPick')">Change vendor</button>` : ''}</div>
       ${v ? `<div class="vendor-card"><div class="vc-main">
           <div class="vc-name">${esc(v.name)}</div><div class="vc-line">${esc(v.trade)}${ideasOn() ? ` · <span class="pill ${coiOf(v).cls}">Insurance: ${coiOf(v).text}</span> ${ideaBadge()}` : ''}</div>
-          <div class="vc-line">${ic('phone')}<button type="button" class="link" onclick="callVendor('${v.id}')">${v.phone}</button>${v.after ? ` · after hours <button type="button" class="link" onclick="callVendor('${v.id}',1)">${v.after}</button>` : ''}</div>
-          <div class="vc-line">${ic('mail')}<button type="button" class="link" onclick="mailVendor('${v.id}')">${esc(v.email)}</button></div>
+          ${isMgr ? vendorContact(v) : ''}
         </div>${manage ? `<button type="button" class="btn btn-sm" onclick="copyForVendor('${r.id}')">${ic('copy')}Copy details</button>` : ''}</div>
         ${manage ? `<div class="note" style="margin-top:8px">${ic('info')}<span>The app doesn't contact vendors. Call or email them, then book the visit here so the site knows who's coming.</span></div>` : ''}`
       : manage ? '' : `<div class="muted" style="font-size:13px">Operations hasn't assigned a vendor yet.</div>`}
@@ -1701,11 +1709,12 @@ function openReq(id, keep){
 
     ${ideasOn() ? siteInfoSection(r) : ''}
     <section class="psec"><div class="psec-head"><h3 class="section-label">Activity</h3><span class="card-sub">Click a notification to preview it</span></div>
-      <div class="act">${activity(r).map(a => `<div class="act-item"><span class="act-ico ${a.note ? (a.note.chans.includes('email') && a.note.chans.length === 1 ? 'mail' : 'teams') : ''}">${ic(a.icon)}</span>
+      <div class="act">${activity(r).filter(a => isMgr || (!a.internal && a.icon !== 'dollar')).map(a => `<div class="act-item"><span class="act-ico ${a.note ? (a.note.chans.includes('email') && a.note.chans.length === 1 ? 'mail' : 'teams') : ''}">${ic(a.icon)}</span>
         <div class="act-text">${a.note ? `<button type="button" class="link" style="font-weight:400;text-align:left" onclick='previewNote("${r.id}",${JSON.stringify(a.note).replace(/'/g, '&#39;')})'>${a.html}</button>` : a.html}</div>
-        <div class="act-meta">${fmtDT(a.at)}</div>${a.comment ? `<div class="act-comment">${esc(a.comment)}</div>` : ''}</div>`).join('')}</div>
-      ${(isMgr || mine) ? `<div class="field" style="margin-top:6px"><label class="field-label" for="cmt">Add a comment</label>
+        <div class="act-meta">${fmtDT(a.at)}</div>${a.comment ? `<div class="act-comment">${a.internal ? '<span class="pill p-neutral" style="margin-right:6px">Internal</span>' : ''}${esc(a.comment)}</div>` : ''}</div>`).join('')}</div>
+      ${canComment ? `<div class="field" style="margin-top:6px"><label class="field-label" for="cmt">Add a comment</label>
         <textarea class="textarea" id="cmt" style="min-height:70px" placeholder="${manage ? 'Update for the requester and site' : 'Ask a question or add details'}"></textarea>
+        ${isMgr ? `<label class="check"><input type="checkbox" id="cmtInternal"> Internal note: only Operations, PMs, SPMs, and Admin see it</label>` : ''}
         <div class="btn-row"><button type="button" class="btn btn-sm btn-primary" onclick="postComment('${r.id}')">Post comment</button></div></div>` : ''}
     </section>
   </div>
@@ -1717,7 +1726,8 @@ function openReq(id, keep){
       ${OPEN.includes(r.status) ? `<button type="button" class="btn btn-sm btn-danger" onclick="cancelReq('${r.id}')">Cancel request</button>` : ''}
     </div></div>`
   : mine && r.status === 'done' ? `<div class="panel-foot"><div class="btn-row"><span class="card-sub" style="flex:1">Fixed? Nothing to do. Problem back?</span><button type="button" class="btn btn-sm" onclick="reopenReq('${r.id}')">${ic('repeat')}Still a problem</button></div></div>`
-  : isMgr ? `<div class="panel-foot"><span class="card-sub">You can view and comment. Operations manages status, vendors and visits.</span></div>` : ''}`;
+  : isMgr ? `<div class="panel-foot"><span class="card-sub">You can view and comment. Operations manages status, vendors and visits.</span></div>`
+  : siteStaff && !mine ? `<div class="panel-foot"><div class="btn-row"><span class="card-sub" style="flex:1">${following ? 'You’re following this request and get the same updates as the person who reported it.' : 'Same problem? Follow this request instead of reporting it again.'}</span>${following ? '<span class="pill p-good">Following</span>' : `<button type="button" class="btn btn-sm btn-primary" onclick="followReq('${r.id}')">Follow</button>`}</div></div>` : ''}`;
   openPanel(html);
 }
 function toggleEl(id){ const el = $(id); el.hidden = !el.hidden; if (!el.hidden) el.querySelector('input,select,textarea')?.focus(); }
@@ -1764,7 +1774,8 @@ function cancelReq(id){ const r = REQ[id]; explain('cancel', {}, () => { r.statu
 function reopenReq(id){ const r = REQ[id]; explain('reopen', {}, () => { r.status = 'new'; logEv(r, 'repeat', `<b>${esc(me().person)}</b> reported it's still a problem`, { status:true }); refresh(); }); }
 function postComment(id){
   const r = REQ[id], text = $('cmt').value.trim(); if (!text){ $('cmt').focus(); return; }
-  explain('comment', {}, () => { r.log.push({ at: iso(now()), who: me().person, text }); refresh(); });
+  const internal = !!$('cmtInternal')?.checked;
+  explain('comment', { internal }, () => { r.log.push({ at: iso(now()), who: me().person, text, internal }); refresh(); });
 }
 function callVendor(vid, after){ const v = VENDOR[vid]; explain('call', { name: v.name, phone: after ? v.after : v.phone }); }
 function mailVendor(vid){ explain('mailto', { name: VENDOR[vid].name }); }
@@ -1861,7 +1872,7 @@ function renderReport(){
       ${s.kitchen ? '' : `<div class="field-hint" style="margin-top:8px">Kitchen equipment appears for sites with a full kitchen.</div>`}
       ${ideasOn() && f.cat === 'turnover' ? ideaNote('bed', `Unit turnover requests come with a make-ready checklist: ${TURNOVER_ITEMS.join(', ').toLowerCase()}.`, 'idea_turnover') : ''}
     </section>
-    ${ideasOn() ? dupCheck(f) : ''}
+    ${dupCheck(f)}
 
     <section class="form-sec"${err('urg')}><div class="form-sec-head"><span class="step-n">3</span><h2 class="form-sec-title">How urgent is it?</h2></div>
       <p class="q">Is anyone in danger, or is there active flooding, fire, a gas smell, sparking, or an outside door that won’t lock?</p>
@@ -1936,7 +1947,7 @@ function renderMine(){
   return `<div class="page page-sm">
     <div class="page-head"><div><h1 class="page-title">My requests</h1><div class="page-sub">Everything you’ve reported and where it stands.</div></div>
       <button type="button" class="btn btn-primary" onclick="go('report')">${ic('plus')}Report a problem</button></div>
-    ${bn('<b>My requests</b> · MaintenanceRequests filtered to <b>Author = me</b>. List setting: people read only their own items. PM, SPM and Operations get a permission level with “Override list behaviors” so the app can read their sites.')}
+    ${bn('<b>My requests</b> · MaintenanceRequests filtered to <b>Author = me</b>. Every staff member can read the requests list, and the app shows only their own site. Private details live in separate lists that staff can’t read: <b>RequestCosts</b>, <b>RequestNotes</b> (internal notes), and <b>Vendors</b> (contacts).')}
     ${upcoming.length ? `<div class="banner">${ic('cal')}<span>${upcoming.map(({ r, v, t }) => `${esc(VENDOR[r.vendor]?.name || 'A vendor')} is booked for <b>${esc(r.loc)}</b> on ${WD[t.getDay()]} ${fmtD(t)}, ${visitWindow(v)}`).join('. ')}.</span><button type="button" class="btn btn-sm" style="margin-left:auto" onclick="calAll('mine')">${ic('cal')}Add to my calendar</button></div>` : ''}
     ${rs.length ? `<div class="grid">${rs.map(r => {
       const step = STEP_OF[r.status], acts = activity(r).filter(a => !a.note), last = acts[acts.length - 1], nv = nextVisit(r);
@@ -2063,11 +2074,22 @@ function renderSettings(){
         <tr><td class="t-main">Operations</td><td><button type="button" class="link" onclick="explain('entra',{group:'CMMS-Operations'})">CMMS-Operations group</button></td><td>All sites</td><td>Review, assign vendors, book visits, costs, status</td></tr>
         <tr><td class="t-main">Senior Program Manager</td><td>Named as SPM on a site in the Sites list</td><td>Every site they’re SPM for</td><td>View and comment</td></tr>
         <tr><td class="t-main">Program Manager</td><td>Named as PM on a site in the Sites list</td><td>Their site(s)</td><td>View and comment</td></tr>
-        <tr><td class="t-main">Everyone else<span class="sub">incl. Team Leads</span></td><td>Any DGM Microsoft 365 account</td><td>Their own requests</td><td>Submit, comment, reopen</td></tr>
+        <tr><td class="t-main">Everyone else<span class="sub">incl. Team Leads</span></td><td>Any DGM Microsoft 365 account (site from their profile)</td><td>Every request at their own site</td><td>Submit, comment, follow, reopen their own</td></tr>
       </tbody></table></div>
       <details class="chart-table"><summary>Who sees which sites (sample of the Sites list)</summary>
         <div class="table-wrap"><table class="table"><thead><tr><th>Site</th><th>PM</th><th>SPM</th><th>Kitchen</th></tr></thead>
         <tbody>${SITES.map(s => `<tr><td class="t-main">${esc(s.name)}</td><td>${esc(s.pm || '—')}</td><td>${esc(s.spm || '— (Operations)')}</td><td>${s.kitchen ? 'Yes' : ''}</td></tr>`).join('')}</tbody></table></div></details>
+      <h3 class="card-title" style="margin:18px 0 8px">What each role can see</h3>
+      <div class="table-wrap"><table class="table"><thead><tr><th>Information</th><th>Staff &amp; Team Leads</th><th>PM / SPM</th><th>Operations &amp; Admin</th></tr></thead><tbody>
+        ${[['Requests: what’s wrong, status, photos, visit dates, comments', 'Their site', 'Their sites', 'All sites'],
+           ['Which vendor is coming', 'Yes', 'Yes', 'Yes'],
+           ['Vendor phone and email', '—', 'Yes', 'Yes'],
+           ['Costs and invoices', '—', 'Yes', 'Yes'],
+           ['Internal notes', '—', 'Yes', 'Yes'],
+           ['Linked incident report number', 'Their own requests', 'Yes', 'Yes']]
+          .map(([k, ...v]) => `<tr><td class="t-main">${k}</td>${v.map(x => `<td>${x === 'Yes' ? `<span class="pill p-good">${ic('check')}Yes</span>` : x === '—' ? '<span class="muted">Hidden</span>' : x}</td>`).join('')}</tr>`).join('')}
+      </tbody></table></div>
+      <div class="note" style="margin-top:8px">${ic('lock')}<span>SharePoint can’t hide individual columns, so costs, internal notes, and vendor contacts live in separate lists that staff don’t have access to. The app hides them on screen, and the list permissions hide them everywhere else.</span></div>
     </section>
 
     <div class="grid g-2">
@@ -2258,7 +2280,7 @@ function openAsset(tag){
       <section class="psec"><dl class="kv"><dt>Where</dt><dd>${esc(siteName(a.site))} › ${esc(a.loc)}</dd><dt>Make</dt><dd>${esc(a.make)}</dd><dt>Installed</dt><dd>${a.year} (${2026 - a.year} years)</dd>
         ${ideasOn() ? `<dt>Warranty ${ideaBadge()}</dt><dd>${ASSET_WARRANTY[a.tag] ? `Until ${fmtDY(d(ASSET_WARRANTY[a.tag].until))} · ${esc(ASSET_WARRANTY[a.tag].who)}` : 'None on file'} <button type="button" class="link" onclick="explain('idea_warranty')">What would this take?</button></dd>` : ''}
         ${a.miles ? `<dt>Odometer</dt><dd>${a.miles.toLocaleString()} mi · next service at ${a.nextMiles.toLocaleString()} mi ${canManage() ? `<button type="button" class="link" onclick="logMiles('${tag}')">Update</button>` : ''}</dd>` : ''}
-        <dt>Repair spend</dt><dd>${money(spent)} on ${hist.length} request${hist.length === 1 ? '' : 's'}</dd>
+        ${MGR.includes(state.role) ? `<dt>Repair spend</dt><dd>${money(spent)} on ${hist.length} request${hist.length === 1 ? '' : 's'}</dd>` : ''}
         <dt>Manual</dt><dd><button type="button" class="link" onclick="explain('openDoc')">${ic('doc')} ${esc(a.make.split(' ')[0].toLowerCase())}-manual.pdf</button></dd></dl></section>
       <section class="psec"><div class="psec-head"><h3 class="section-label">QR label</h3><button type="button" class="link" onclick="explain('printQR',{tag:'${tag}'})">Print label</button></div>
         <div class="qr-box"><div class="qr" id="qrSpot"></div><div><div style="font-weight:600">${esc(a.name)}</div><div class="mono" style="font-size:12px">${a.tag} · ${esc(siteName(a.site))}</div>
@@ -2299,6 +2321,11 @@ function renderKitchens(){
   </div>`;
 }
 
+function vendorContact(v){
+  return `<div class="vc-line">${ic('phone')}<button type="button" class="link" onclick="callVendor('${v.id}')">${v.phone}</button>${v.after ? ` · after hours <button type="button" class="link" onclick="callVendor('${v.id}',1)">${v.after}</button>` : ''}</div>
+    <div class="vc-line">${ic('mail')}<button type="button" class="link" onclick="mailVendor('${v.id}')">${esc(v.email)}</button></div>`;
+}
+
 /* ════════════════════════ ADD TO MY CALENDAR (core) ════════════════════════ */
 function calOne(id, i){
   const r = REQ[id], v = r.v[i];
@@ -2320,12 +2347,12 @@ function dupCheck(f){
   if (!f.cat) return '';
   const dups = REQUESTS.filter(r => r.site === f.site && r.cat === f.cat && r.src === 'request' && OPEN.includes(r.status) && (!f.loc || r.loc === f.loc)).sort(byNewest).slice(0, 3);
   if (!dups.length) return '';
-  return `<section class="form-sec idea-card"><div class="form-sec-head">${ic('search')}<h2 class="form-sec-title">Is it one of these? ${ideaBadge()}</h2></div>
+  return `<section class="form-sec"><div class="form-sec-head">${ic('search')}<h2 class="form-sec-title">Already reported?</h2></div>
     <p class="field-hint" style="margin-bottom:6px">Open ${esc(catLabel(f.cat).toLowerCase())} requests at ${esc(siteName(f.site))}${f.loc ? ' › ' + esc(f.loc) : ''}. If it’s the same problem, follow it instead of reporting it again.</p>
     <div class="list">${dups.map(r => `<div class="li"><div class="li-main"><div class="li-title">${esc(r.title)}</div>
       <div class="li-meta"><span class="mono">${r.id}</span><span>${esc(r.loc)}</span><span>${ago(d(r.at))}</span>${statusPill(r)}</div></div>
-      <div class="li-right"><button type="button" class="btn btn-sm" onclick="followReq('${r.id}')">Same problem: follow it</button></div></div>`).join('')}</div>
-    <button type="button" class="link" style="margin-top:6px" onclick="explain('idea_dup')">What would this take?</button></section>`;
+      <div class="li-right">${r.by === me().person ? '<span class="pill p-neutral">You reported this</span>' : (r.followers || []).includes(me().person) ? '<span class="pill p-good">Following</span>' : `<button type="button" class="btn btn-sm" onclick="followReq('${r.id}')">Same problem: follow it</button>`}</div></div>`).join('')}</div>
+    <button type="button" class="link" style="margin-top:6px" onclick="explain('dupCheck')">How this works</button></section>`;
 }
 function followReq(id){
   explain('followReq', { id }, () => {
