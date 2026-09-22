@@ -1617,6 +1617,7 @@ const RQ_VIEWS = [
   { id:'late',    label:'Past target',         fn: r => isLate(r) },
   { id:'waiting', label:'Waiting',             fn: r => r.status === 'waiting' },
   { id:'done',    label:'Completed',           fn: r => r.status === 'done' },
+  { id:'nocost',  label:'Completed, no cost',  fn: r => r.status === 'done' && !r.c.length, mgr:true },
   { id:'all',     label:'All',                 fn: () => true }
 ];
 function rqFiltered(){
@@ -1625,7 +1626,7 @@ function rqFiltered(){
   if (f.site) rs = rs.filter(r => r.site === f.site);
   if (f.cat) rs = rs.filter(r => r.cat === f.cat);
   if (f.q){ const q = f.q.toLowerCase(); rs = rs.filter(r => [r.id, r.title, r.loc, r.by, siteName(r.site), VENDOR[r.vendor]?.name].join(' ').toLowerCase().includes(q)); }
-  if (f.view === 'done') return rs.sort((a, b) => d(b.done) - d(a.done));
+  if (f.view === 'done' || f.view === 'nocost') return rs.sort((a, b) => d(b.done) - d(a.done));
   if (f.view === 'all') return rs.sort(byNewest);
   return rs.sort((a, b) => PRI_RANK[a.pri] - PRI_RANK[b.pri] || isLate(b) - isLate(a) || d(a.at) - d(b.at));
 }
@@ -1637,7 +1638,7 @@ function renderRequests(){
     <div class="page-head"><div><h1 class="page-title">${state.role === 'staff' ? 'Site requests' : 'Requests'}</h1><div class="page-sub">${canManage() ? 'Review, book vendors, and track every request to done.' : state.role === 'staff' ? `Everything reported at ${esc(siteName(me().home))}. Check here first: if it’s already reported, follow it instead of reporting it again.` : 'All requests at your sites. You can open any request and add comments.'}</div></div>${scopeChip()}</div>
     ${bn('<b>Requests</b> · <b>MaintenanceRequests</b> list (indexed: Site, Status, Priority, Created). Filtering and sorting happen in SPFx. Response targets are stored as <b>TargetAt</b> when a request is created or its priority changes. <b>Staff</b> see every request at their own site. Costs, internal notes, and vendor contacts live in separate lists that staff can’t read (SharePoint has no column-level permissions).')}
     <div class="filters" role="group" aria-label="Views">
-      ${RQ_VIEWS.map(v => { const n = all.filter(v.fn).length; return `<button type="button" class="chip" aria-pressed="${f.view === v.id}" onclick="state.rq.view='${v.id}';render()">${v.label}<span class="n">${n}</span></button>`; }).join('')}
+      ${RQ_VIEWS.filter(v => !v.mgr || MGR.includes(state.role)).map(v => { const n = all.filter(v.fn).length; return `<button type="button" class="chip" aria-pressed="${f.view === v.id}" onclick="state.rq.view='${v.id}';render()">${v.label}<span class="n">${n}</span></button>`; }).join('')}
     </div>
     <div class="filters">
       <label class="search">${ic('search')}<input id="rqSearch" type="search" placeholder="Search number, title, location, person, vendor" value="${esc(f.q)}" oninput="state.rq.q=this.value;renderRqTable()" aria-label="Search requests"></label>
@@ -1836,9 +1837,9 @@ function openReq(id, keep){
       <span style="flex:1"></span>
       ${OPEN.includes(r.status) ? `<button type="button" class="btn btn-sm btn-danger" onclick="cancelReq('${r.id}')">Cancel request</button>` : ''}
     </div></div>`
-  : mine && r.status === 'done' ? `<div class="panel-foot"><div class="btn-row"><span class="card-sub" style="flex:1">Fixed? Nothing to do. Problem back?</span><button type="button" class="btn btn-sm" onclick="reopenReq('${r.id}')">${ic('repeat')}Still a problem</button></div></div>`
-  : isMgr ? `<div class="panel-foot"><span class="card-sub">You can view and comment. Operations manages status, vendors and visits.</span></div>`
-  : siteStaff && !mine ? `<div class="panel-foot"><div class="btn-row"><span class="card-sub" style="flex:1">${following ? 'You’re following this request and get the same updates as the person who reported it.' : 'Same problem? Follow this request instead of reporting it again.'}</span>${following ? '<span class="pill p-good">Following</span>' : `<button type="button" class="btn btn-sm btn-primary" onclick="followReq('${r.id}')">Follow</button>`}</div></div>` : ''}`;
+  : (mine || isMgr || following) && r.status === 'done' ? doneFoot(r)
+  : isMgr ? pmFoot(r)
+  : siteStaff && !mine && OPEN.includes(r.status) ? `<div class="panel-foot"><div class="btn-row"><span class="card-sub" style="flex:1">${following ? 'You’re following this request and get the same updates as the person who reported it.' : 'Same problem? Follow this request instead of reporting it again.'}</span>${following ? '<span class="pill p-good">Following</span>' : `<button type="button" class="btn btn-sm btn-primary" onclick="followReq('${r.id}')">Follow</button>`}</div></div>` : ''}`;
   openPanel(html);
 }
 function toggleEl(id){ const el = $(id); el.hidden = !el.hidden; if (!el.hidden) el.querySelector('input,select,textarea')?.focus(); }
@@ -1882,7 +1883,7 @@ function setPriority(id, to){
   $('prSel').value = '';
 }
 function cancelReq(id){ const r = REQ[id]; explain('cancel', {}, () => { r.status = 'cancelled'; logEv(r, 'x', `<b>${esc(me().person)}</b> cancelled the request`, { status:true }); refresh(); }); }
-function reopenReq(id){ const r = REQ[id]; explain('reopen', {}, () => { r.status = 'new'; logEv(r, 'repeat', `<b>${esc(me().person)}</b> reported it's still a problem`, { status:true }); refresh(); }); }
+function reopenReq(id){ const r = REQ[id]; if (!canReopen(r) && !canManage()){ toast('The reopen window has passed. Report it again instead.'); return; } explain('reopen', {}, () => { r.status = 'new'; logEv(r, 'repeat', `<b>${esc(me().person)}</b> reported it's still a problem`, { status:true }); refresh(); }); }
 function postComment(id){
   const r = REQ[id], text = $('cmt').value.trim(); if (!text){ $('cmt').focus(); return; }
   const internal = !!$('cmtInternal')?.checked;
@@ -1918,7 +1919,7 @@ function noticeHtml(r, note, ch){
     btns = ['Open request'];
   } else if (note.ruleId === 'done'){
     head = `Completed: ${esc(r.title)}`; facts = [['Where', esc(whereText(r))], ['Vendor', esc(VENDOR[r.vendor]?.name || '—')]];
-    body = 'Operations marked this request complete. If the problem comes back, open the request and choose “Still a problem.”'; btns = ['Open request'];
+    body = `This request was marked complete. If it isn’t fixed, open it within ${REOPEN_DAYS()} days and choose “Still a problem.”`; btns = ['Open request'];
   } else if (!['new','emergency'].includes(note.ruleId)){
     head = { status:`Status update: ${esc(r.title)}`, comment:`New comment: ${esc(r.title)}`, late:`Past response target: ${esc(r.title)}`, compliance:'Compliance date coming up' }[note.ruleId] || esc(r.title);
     facts = [['Where', esc(whereText(r))], ['Status', STATUS[r.status].label]];
@@ -2076,7 +2077,7 @@ function renderMine(){
         <div class="req-top"><div style="min-width:0"><div class="li-title">${esc(r.title)}</div><div class="li-meta"><span class="mono">${r.id}</span><span>${esc(whereText(r))}</span><span>${fmtD(d(r.at))}</span></div></div>
           <div class="btn-row">${r.pri === 'emergency' || r.pri === 'urgent' ? priPill(r.pri) : ''}${statusPill(r)}</div></div>
         ${step != null ? `<div class="stepper" aria-label="Progress: ${STATUS[r.status].label}">${STEPS.map((l, i) => `<div class="stp${i <= step ? ' on' : ''}${i === step ? ' cur' : ''}"><div class="stp-bar"></div><div class="stp-l">${i === 2 && r.status === 'waiting' ? 'Waiting' : l}</div></div>`).join('')}</div>` : ''}
-        <div class="req-update">${ic(last?.comment ? 'chat' : 'info')}<span>${last?.comment ? `<b>${esc(last.html.replace(/<[^>]+>/g, '').replace(' commented', ''))}:</b> ${esc(last.comment)}` : nv ? `Vendor visit ${WD[nv.getDay()]} ${fmtD(nv)}, ${fmtT(nv)}` : r.status === 'waiting' ? esc(r.wait) : r.status === 'new' ? 'Waiting for Operations to review.' : r.status === 'done' ? `Completed ${fmtD(d(r.done))}. Still a problem? Open it to let Operations know.` : esc(last ? last.html.replace(/<[^>]+>/g, '') : '')}</span></div>
+        <div class="req-update">${ic(last?.comment ? 'chat' : 'info')}<span>${last?.comment ? `<b>${esc(last.html.replace(/<[^>]+>/g, '').replace(' commented', ''))}:</b> ${esc(last.comment)}` : nv ? `Vendor visit ${WD[nv.getDay()]} ${fmtD(nv)}, ${fmtT(nv)}` : r.status === 'waiting' ? esc(r.wait) : r.status === 'new' ? 'Waiting for Operations to review.' : r.status === 'done' ? (canReopen(r) ? `Completed ${fmtD(d(r.done))}. Not fixed? You can reopen it until ${fmtD(reopenUntil(r))}.` : `Completed ${fmtD(d(r.done))}. This request is final.`) : esc(last ? last.html.replace(/<[^>]+>/g, '') : '')}</span></div>
       </button>`; }).join('')}</div>`
     : `<div class="card empty">You haven’t reported anything yet.<div style="margin-top:12px"><button type="button" class="btn btn-primary" onclick="go('report')">${ic('plus')}Report a problem</button></div></div>`}
   </div>`;
@@ -2252,7 +2253,7 @@ SETTINGS_VIEWS.people = () => {
     <section class="card"><div class="card-head"><h2 class="card-title">What each role can see</h2></div>
       <div class="table-wrap"><table class="table"><thead><tr><th>Information</th><th>Staff &amp; Team Leads</th><th>PM / SPM</th><th>Operations &amp; Admin</th></tr></thead><tbody>
         ${[['Requests: what’s wrong, status, photos, visit dates, comments', 'Their site', 'Their sites', 'All sites'], ['Which vendor is coming', 'Yes', 'Yes', 'Yes'], ['Vendor phone and email', '—', 'Yes', 'Yes'],
-           ['Costs and invoices', '—', 'Yes', 'Yes'], ['Internal notes', '—', 'Yes', 'Yes'], ['Linked incident report number', 'Their own requests', 'Yes', 'Yes'], ['Settings', '—', '—', 'Admin only']]
+           ['Costs and invoices', '—', 'Yes', 'Yes'], ['Internal notes', '—', 'Yes', 'Yes'], ['Linked incident report number', 'Their own requests', 'Yes', 'Yes'], ['Mark requests completed', 'No', 'Their sites', 'Yes'], ['Reopen within the window', 'Their own or followed', 'Their sites', 'Any time'], ['Settings', '—', '—', 'Admin only']]
           .map(([k, ...v]) => `<tr><td class="t-main">${k}</td>${v.map(x => `<td>${x === 'Yes' ? `<span class="pill p-good">${ic('check')}Yes</span>` : x === '—' ? '<span class="muted">Hidden</span>' : x}</td>`).join('')}</tr>`).join('')}
       </tbody></table></div>
       <div class="note" style="margin-top:8px">${ic('lock')}<span>SharePoint can’t hide single columns, so costs, internal notes, and vendor contacts live in separate lists staff can’t read. A setup script also hides every list from site navigation and search, as with IR.</span></div></section>`;
@@ -2337,7 +2338,7 @@ const DEFAULT_TPL = {
   visit:{ title:'Vendor visit booked: {Title}', body:'{Vendor} is coming {VisitTime} to {Site} › {Location}.' },
   unit:{ title:'Entry notice needed: {Location}', body:'{Vendor} will be inside {Location} at {Site} on {VisitTime}. Please give the resident entry notice.' },
   status:{ title:'Status update: {Title}', body:'Your request {Number} has a new status.' },
-  done:{ title:'Completed: {Title}', body:'Operations marked {Number} complete. If the problem comes back, open it and choose “Still a problem.”' },
+  done:{ title:'Completed: {Title}', body:'{Number} was marked complete. If it isn’t fixed, open it within 7 days and choose “Still a problem.”' },
   comment:{ title:'New comment: {Title}', body:'There’s a new comment on {Number}.' },
   late:{ title:'Past response target: {Title}', body:'{Number} at {Site} is past its {Priority} response target.' },
   compliance:{ title:'Compliance date coming up', body:'An inspection or certificate is due soon. Open Compliance to book it.' }
@@ -2412,9 +2413,12 @@ function saveWording(){
 SETTINGS_VIEWS.targets = () => `<section class="card"><div class="card-head"><div><h2 class="card-title">Response targets</h2><div class="card-sub">Time from submitting to a vendor on site. Past-target requests are flagged and alert Operations.</div></div>
     <button type="button" class="btn btn-primary btn-sm" onclick="saveTargets()">Save</button></div>
     <div class="stack">${['emergency','urgent','routine'].map(p => `<div class="rcp"><span class="rcp-who">${priPill(p)}</span><input class="input mini-input" style="max-width:140px" id="tgt-${p}" value="${EXTRA_TARGETS[p]}" aria-label="${PRI[p].label} target"></div>`).join('')}
-      <div class="rcp"><span class="rcp-who">${priPill('planned')}</span><span class="card-sub">By each item’s due date</span></div></div></section>`;
+      <div class="rcp"><span class="rcp-who">${priPill('planned')}</span><span class="card-sub">By each item’s due date</span></div>
+      <div class="rcp" style="margin-top:10px"><span class="rcp-who">Reopen window</span><input class="input mini-input" style="max-width:80px" id="reopenDays" type="number" min="1" max="60" value="${REOPEN_DAYS()}" aria-label="Reopen window in days"><span class="card-sub">days after completion when the requester can press “Still a problem”. After that it’s final.</span></div></div></section>`;
 function saveTargets(){ const next = {}; ['emergency','urgent','routine'].forEach(p => { next[p] = $('tgt-' + p).value.trim() || EXTRA_TARGETS[p]; }); const before = { ...EXTRA_TARGETS };
-  explain('saveTargets', {}, () => { Object.assign(EXTRA_TARGETS, next); recordSetting(`Response targets: ${next.emergency} · ${next.urgent} · ${next.routine}`, () => { Object.assign(EXTRA_TARGETS, before); }); render(); });
+  const rd = Math.max(1, Math.min(60, +$('reopenDays').value || 7)), beforeRd = REOPEN_DAYS();
+  explain('saveTargets', {}, () => { Object.assign(EXTRA_TARGETS, next); SETTINGS.reopenDays = rd;
+    recordSetting(`Response targets: ${next.emergency} · ${next.urgent} · ${next.routine}; reopen window ${rd} days`, () => { Object.assign(EXTRA_TARGETS, before); SETTINGS.reopenDays = beforeRd; }); render(); });
 }
 
 const MOD_INFO = [['compliance','Compliance dates','Inspections, certificates, and renewals with reminders.'],['recurring','Recurring vendor services','Monthly pest control, landscaping, seasonal service. Requests are created ahead of each visit.'],
@@ -2623,6 +2627,31 @@ function attachInvoice(){
     () => { state.costFile = 'invoice-' + (($('cInv')?.value || '').trim() || 'new') + '.pdf'; const el = $('cFileName'); if (el) el.textContent = state.costFile; });
 }
 function openFile(name){ act({ title:`Open ${name}`, go:'OK', real:[['doc', 'Opens the invoice in the SharePoint or Teams file viewer. It’s stored with restricted permissions, so staff can’t open it.']] }); }
+
+/* ── Completing: PM, SPM or Operations marks it done; the requester can reopen within the window, then it's final ── */
+const REOPEN_DAYS = () => SETTINGS.reopenDays || 7;
+const reopenUntil = r => new Date(d(r.done).getTime() + REOPEN_DAYS() * DAY);
+const canReopen = r => r.status === 'done' && !!r.done && now() < reopenUntil(r);
+function doneFoot(r){
+  return canReopen(r)
+    ? `<div class="panel-foot"><div class="btn-row"><span class="card-sub" style="flex:1">Completed ${fmtD(d(r.done))}. Not fixed? You can reopen it until ${fmtD(reopenUntil(r))}.</span><button type="button" class="btn btn-sm" onclick="reopenReq('${r.id}')">${ic('repeat')}Still a problem</button></div></div>`
+    : `<div class="panel-foot"><div class="btn-row"><span class="card-sub" style="flex:1">Completed ${fmtD(d(r.done))} and final. If the problem is back, report it again.</span><button type="button" class="btn btn-sm" onclick="reportAgain('${r.id}')">${ic('plus')}Report it again</button></div></div>`;
+}
+function pmFoot(r){
+  if (OPEN.includes(r.status)) return `<div class="panel-foot"><div class="btn-row"><span class="card-sub" style="flex:1">Operations handles vendors and visits. Mark it completed once the work is done.</span><button type="button" class="btn btn-sm btn-primary" onclick="completeReq('${r.id}')">${ic('check')}Mark completed</button></div></div>`;
+  return `<div class="panel-foot"><span class="card-sub">${r.status === 'cancelled' ? 'This request was cancelled.' : 'You can view and comment.'}</span></div>`;
+}
+function completeReq(id){
+  const r = REQ[id];
+  openModal(`<div class="modal-head"><div class="modal-title">Mark completed</div>${X_BTN}</div><div class="modal-body">
+    <label class="field"><span class="field-label">What was done? <span class="muted" style="font-weight:400">(optional)</span></span><textarea class="textarea" id="doneNote" style="min-height:70px" placeholder="e.g. The vendor replaced the heater element. Hot water is back."></textarea></label>
+    <div class="note">${ic('info')}<span>The requester is told right away and can reopen it for ${REOPEN_DAYS()} days if it isn’t fixed. Recording a cost is optional.</span></div></div>
+    <div class="modal-foot"><button type="button" class="btn" data-close>Cancel</button><button type="button" class="btn btn-primary" id="doneGo">Mark completed</button></div>`);
+  $('doneGo').onclick = () => { const note = $('doneNote').value.trim(); closeModal();
+    explain('status', { to:'done' }, () => { r.status = 'done'; r.done = iso(now()); if (note) r.log.push({ at: iso(now()), who: me().person, text: note });
+      logEv(r, 'check', `<b>${esc(me().person)}</b> marked it completed`, { status:true }); notesFor('done', r).forEach(n => logEv(r, n.icon, esc(n.text), { note:n })); refresh(); }); };
+}
+function reportAgain(id){ const r = REQ[id]; state.form = { ...newForm(), site:r.site, loc:r.loc, cat:r.cat, title:r.title, desc:`Back again after ${r.id}, completed ${fmtD(d(r.done))}. ` }; closePanel(); go('report'); }
 
 function resendMsg(i){
   const n = NOTIF_LOG[i];
