@@ -528,7 +528,7 @@ svg.i{width:16px;height:16px;flex-shrink:0;}
 @media (max-width:560px){.cal-add span{display:none;}}
 </style>
 </head>
-<body>
+<body class="show-bn">
 
 <!-- ═════════ Prototype controls (not part of the product) ═════════ -->
 <div class="demo-bar" role="region" aria-label="Prototype controls">
@@ -553,7 +553,7 @@ svg.i{width:16px;height:16px;flex-shrink:0;}
     <span class="seg" id="modSeg"><button type="button" data-mod="core" aria-pressed="true">Core</button><button type="button" data-mod="all" aria-pressed="false">+ Optional</button><button type="button" data-mod="ideas" aria-pressed="false">+ Ideas</button></span>
   </div>
   <label class="demo-check"><input type="checkbox" id="explainToggle" checked> Explain buttons</label>
-  <label class="demo-check"><input type="checkbox" id="bnToggle"> Build notes</label>
+  <label class="demo-check"><input type="checkbox" id="bnToggle" checked> Build notes</label>
   <span class="demo-note">Sample people, vendors and figures · “Today” is Tue Sep 22, 2026</span>
 </div>
 
@@ -1842,6 +1842,9 @@ function formPri(f){ return f.danger === true ? 'emergency' : f.danger === false
 function renderReport(){
   const f = state.form ||= newForm();
   if (f.submitted) return renderSubmitted(REQ[f.submitted]);
+  const allowed = reportSites();
+  if (!allowed.length) return noSiteNotice();
+  if (!allowed.includes(f.site)){ f.moved = SITE[f.site]?.name; f.site = allowed[0]; f.loc = ''; f.asset = ''; }
   const s = SITE[f.site], L = siteLocations(s), pri = formPri(f);
   const cats = CATS.filter(c => (!c.kitchenOnly || s.kitchen) && (!c.types || c.types.includes(s.type)) && (!c.idea || ideasOn()));
   const siteAssets = optOn() ? ASSETS.filter(a => a.site === f.site) : [];
@@ -1849,13 +1852,15 @@ function renderReport(){
   const err = k => f.errors.includes(k) ? ' style="border-color:var(--warn)"' : '';
   return `<div class="page page-sm">
     <div class="page-head"><div><h1 class="page-title">Report a problem</h1><div class="page-sub">Tell Operations what needs fixing. It takes about a minute.</div></div></div>
-    ${bn('<b>Report a problem</b> · creates a <b>MaintenanceRequests</b> item. SPFx fills in the requester from the M365 profile, the site from the profile’s office location (same as IR), the priority from the answers below, and <b>TargetAt</b>. Then it queues notifications per the rules. The relay flow only sends them.')}
+    ${f.moved ? `<div class="note amber" style="margin-bottom:14px">${ic('info')}<span>You can report problems only for your own site, so this form is set to ${esc(s.name)}. For ${esc(f.moved)}, let that site’s staff or Operations know.</span></div>` : ''}
+    ${bn('<b>Report a problem</b> · creates a <b>MaintenanceRequests</b> item. SPFx fills in the requester from the M365 profile, the site from the profile’s office location (same as IR, but no coverage mode: staff report only for their own site, and on-call staff can’t submit), the priority from the answers below, and <b>TargetAt</b>. Then it queues notifications per the rules. The relay flow only sends them.')}
 
     <section class="form-sec"><div class="form-sec-head"><span class="step-n">1</span><h2 class="form-sec-title">Where is it?</h2></div>
       <div class="form-grid">
-        <label class="field"><span class="field-label">Site <span class="req">*</span></span>
-          <select class="select" id="fSite" onchange="state.form.site=this.value;state.form.loc='';state.form.asset='';state.form.cat='';render()">${SITES.map(x => `<option value="${x.id}"${x.id === f.site ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
-          <span class="field-hint">Filled in from your profile. Change it if you’re covering another site.</span></label>
+        <div class="field"><span class="field-label">Site <span class="req">*</span></span>
+          ${allowed.length === 1 ? `<div class="input" style="display:flex;align-items:center;gap:8px;background:var(--bg);color:var(--ink2)">${ic('lock')}${esc(s.name)}</div>`
+            : `<select class="select" id="fSite" aria-label="Site" onchange="state.form.site=this.value;state.form.loc='';state.form.asset='';state.form.cat='';render()">${allowed.map(id => `<option value="${id}"${id === f.site ? ' selected' : ''}>${esc(SITE[id].name)}</option>`).join('')}</select>`}
+          <span class="field-hint">${state.role === 'staff' ? 'From your Microsoft 365 profile. You report problems for your own site.' : canManage() ? 'Operations can report for any site.' : 'Your sites, from the Sites list.'}</span></div>
         <label class="field"><span class="field-label">Location <span class="req">*</span></span>
           <select class="select" id="fLoc"${err('loc')} onchange="state.form.loc=this.value;render()"><option value="">Choose a location…</option>
             <optgroup label="Common areas">${L.common.map(x => `<option${x === f.loc ? ' selected' : ''}>${esc(x)}</option>`).join('')}</optgroup>
@@ -2074,7 +2079,8 @@ function renderSettings(){
         <tr><td class="t-main">Operations</td><td><button type="button" class="link" onclick="explain('entra',{group:'CMMS-Operations'})">CMMS-Operations group</button></td><td>All sites</td><td>Review, assign vendors, book visits, costs, status</td></tr>
         <tr><td class="t-main">Senior Program Manager</td><td>Named as SPM on a site in the Sites list</td><td>Every site they’re SPM for</td><td>View and comment</td></tr>
         <tr><td class="t-main">Program Manager</td><td>Named as PM on a site in the Sites list</td><td>Their site(s)</td><td>View and comment</td></tr>
-        <tr><td class="t-main">Everyone else<span class="sub">incl. Team Leads</span></td><td>Any DGM Microsoft 365 account (site from their profile)</td><td>Every request at their own site</td><td>Submit, comment, follow, reopen their own</td></tr>
+        <tr><td class="t-main">Everyone else<span class="sub">incl. Team Leads</span></td><td>Any DGM Microsoft 365 account (site from their profile)</td><td>Every request at their own site</td><td>Submit for their own site, comment, follow, reopen their own</td></tr>
+        <tr><td class="t-main">On-call staff<span class="sub">no home site in their profile</span></td><td>Office location “On-Call”</td><td>Only requests they’ve followed</td><td>Can’t submit in v1. They ask the site PM or Operations.</td></tr>
       </tbody></table></div>
       <details class="chart-table"><summary>Who sees which sites (sample of the Sites list)</summary>
         <div class="table-wrap"><table class="table"><thead><tr><th>Site</th><th>PM</th><th>SPM</th><th>Kitchen</th></tr></thead>
@@ -2089,7 +2095,7 @@ function renderSettings(){
            ['Linked incident report number', 'Their own requests', 'Yes', 'Yes']]
           .map(([k, ...v]) => `<tr><td class="t-main">${k}</td>${v.map(x => `<td>${x === 'Yes' ? `<span class="pill p-good">${ic('check')}Yes</span>` : x === '—' ? '<span class="muted">Hidden</span>' : x}</td>`).join('')}</tr>`).join('')}
       </tbody></table></div>
-      <div class="note" style="margin-top:8px">${ic('lock')}<span>SharePoint can’t hide individual columns, so costs, internal notes, and vendor contacts live in separate lists that staff don’t have access to. The app hides them on screen, and the list permissions hide them everywhere else.</span></div>
+      <div class="note" style="margin-top:8px">${ic('lock')}<span>SharePoint can’t hide individual columns, so costs, internal notes, and vendor contacts live in separate lists that staff don’t have access to. The app hides them on screen, and the list permissions hide them everywhere else. As with IR, a provisioning script also hides every list from site navigation and search.</span></div>
     </section>
 
     <div class="grid g-2">
@@ -2321,6 +2327,17 @@ function renderKitchens(){
   </div>`;
 }
 
+/* Who can report for which site. No coverage mode in v1: staff → their home site only; PM/SPM → their sites;
+   Operations/Admin → any site. On-call staff have no home site in their profile, so they can't submit. */
+function reportSites(){
+  const r = state.role;
+  if (r === 'ops' || r === 'admin') return ALL_SITE_IDS;
+  if (r === 'pm' || r === 'spm') return scopeIds();
+  return me().home ? [me().home] : [];
+}
+function noSiteNotice(){
+  return `<div class="page page-sm"><div class="card empty">${ic('info')}<p style="margin-top:8px">Your Microsoft 365 profile doesn’t list a home site, so you can’t submit maintenance requests. Ask the site’s PM or Operations to report it.</p></div></div>`;
+}
 function vendorContact(v){
   return `<div class="vc-line">${ic('phone')}<button type="button" class="link" onclick="callVendor('${v.id}')">${v.phone}</button>${v.after ? ` · after hours <button type="button" class="link" onclick="callVendor('${v.id}',1)">${v.after}</button>` : ''}</div>
     <div class="vc-line">${ic('mail')}<button type="button" class="link" onclick="mailVendor('${v.id}')">${esc(v.email)}</button></div>`;

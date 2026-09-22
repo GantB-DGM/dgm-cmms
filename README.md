@@ -22,9 +22,9 @@ All people, vendors, and figures in the prototype are sample data.
 
 **Core (v1)**
 
-- Anyone at DGM can report a problem: site, exact location (pod, room, or unit), category, guided urgency questions, and photos. An "Already reported?" check shows open requests at that site first, so people follow an existing request instead of filing a duplicate.
+- Staff report problems for their own site: exact location (pod, room, or unit), category, guided urgency questions, and photos. An "Already reported?" check shows open requests at that site first, so people follow an existing request instead of filing a duplicate. There is no coverage mode in v1. PMs and SPMs can report for any of their sites and Operations for any site. On-call staff have no home site, so they can't submit.
 - All staff, including Team Leads, see every request at their own site, but not costs, vendor contacts, or internal notes. PMs see their sites, SPMs see the sites they oversee, and Operations sees and manages everything. Admin can also change settings. PM and SPM assignments come from the Sites list shared with the Incident Reporting app.
-- SharePoint can't hide individual columns, so costs, internal notes, and vendor contacts live in separate lists that staff can't read.
+- SharePoint can't hide individual columns, so costs, internal notes, and vendor contacts live in separate lists that staff can't read. Site scoping is done by the app, so staff can technically read other sites' requests. That's a known trade-off: as with IR, a provisioning script hides every list from site navigation and search.
 - Operations assigns vendors, books site visits, records costs, and closes requests. The app never contacts vendors.
 - Each notification can go by any mix of Teams channel post, Teams chat, and email. Admins configure this in Settings.
 - **Add to my calendar**: any booked vendor visit (or all upcoming visits) can be saved as an Outlook calendar file (`.ics`), built in the browser with no flow.
