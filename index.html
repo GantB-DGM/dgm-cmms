@@ -732,7 +732,7 @@ const ICONS = {
 };
 const ic = (n, cls = 'i') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n] || ''}</svg>`;
 
-/* ── Sites (mirrors the IR Sites list: PM + SPM columns drive scope; kitchen is a new column) ── */
+/* ── Sites (mirrors the IR Sites list: PM + SPM columns drive scope; kitchen:true only seeds sample Kitchen locations) ── */
 const SITES = [
   { id:'82nd',       name:'82nd VIMO',              type:'day',        program:'Day center',                 pm:'Jess Park',     spm:'Kwame Mensah',  },
   { id:'arbor',      name:'Arbor Lodge',            type:'congregate', program:'Congregate shelter',         pm:'Morgan Ellis',  spm:'Riley Chen',   kitchen:true },
@@ -757,7 +757,9 @@ const SITE = Object.fromEntries(SITES.map(s => [s.id, s]));
 const TYPE_LABEL = { village:'Village', motel:'Motel', psh:'Housing', congregate:'Congregate', day:'Day center', admin:'Admin' };
 
 const EXTRA_LOC = {};   // locations added in Settings (demo)
-/* Per-site locations: common areas + units (pods / rooms / apartments) */
+/* Per-site locations: common areas, kitchen areas, and units (pods / rooms / apartments).
+   A site is a kitchen site when it has at least one active Kitchen location. */
+const KITCHEN_SEED = ['Kitchen', 'Kitchen — walk-ins', 'Kitchen — dry storage'];
 function siteLocations(s){
   const common = {
     village:['Hygiene trailer','Community building','Office trailer','Laundry','Perimeter fence & gate','Parking & grounds'],
@@ -767,17 +769,20 @@ function siteLocations(s){
     day:['Main hall','Restrooms','Showers','Laundry','Staff office','Storage','Parking & exterior'],
     admin:['Reception','Offices','Conference room','Break room','Restrooms','Server closet','Parking']
   }[s.type].slice();
-  if (s.kitchen) common.splice(1, 0, 'Kitchen', 'Kitchen — walk-ins', 'Kitchen — dry storage');
   common.push(...(EXTRA_LOC[s.id] || []));
+  const kitchen = s.kitchen ? KITCHEN_SEED.slice() : [];
   const units = [];
   if (s.type === 'village') for (let i = 1; i <= 30; i++) units.push('Pod ' + i);
   if (s.type === 'motel') [1, 2].forEach(f => { for (let i = 1; i <= 20; i++) units.push('Room ' + (f * 100 + i)); });
   if (s.type === 'psh') [1, 2, 3].forEach(f => { for (let i = 1; i <= 12; i++) units.push('Unit ' + (f * 100 + i)); });
   const e = LOC_EDITS[s.id], off = new Set(e?.off || []);
-  if (e){ common.push(...e.common); units.push(...e.units); }
-  return { common: common.filter(x => !off.has(x)), units: units.filter(x => !off.has(x)), allCommon: common, allUnits: units, off,
+  if (e){ common.push(...e.common); kitchen.push(...(e.kitchen || [])); units.push(...e.units); }
+  const on = x => !off.has(x), onCommon = common.filter(on), onKitchen = kitchen.filter(on);
+  return { common: [...onCommon.slice(0, 1), ...onKitchen, ...onCommon.slice(1)], kitchen: onKitchen, units: units.filter(on),
+    allCommon: common, allKitchen: kitchen, allUnits: units, off,
     unitLabel: { village:'Pods', motel:'Rooms', psh:'Apartments' }[s.type] || null };
 }
+const hasKitchen = s => siteLocations(s).kitchen.length > 0;
 const isUnit = loc => /^(Pod|Room|Unit) /.test(loc || '');
 
 /* ── People & roles ──
@@ -1157,7 +1162,7 @@ const STAFF_CHECKS = [
   { id:'s03', name:'Pod smoke/CO detector test',      cat:'fire', site:'kiggins', freq:'Monthly', last:'2026-08-15', due:'2026-09-15', vendor:null, staff:true, ref:'Village safety plan', proof:false }
 ];
 STAFF_CHECKS.forEach(c => { c.idea = true; COMPLIANCE.push(c); });
-function siteFacts(s){   // sample text only; the real values would live on the Sites list
+function siteFacts(s){   // sample text only; the real values would live in a Maintenance-only MaintenanceSiteInfo list (one row per site)
   return {
     village:{ water:'Curb valve at the main gate, east side', gas:'None (electric only)', power:'Main panel in the office trailer', access:'Staffed 24/7. Check in at the office trailer.', hazmat:'None on file' },
     motel:{ water:'Meter vault, NW corner of the parking lot', gas:'Meter at the back of the building, south wall', power:'Main panel in the laundry room', access:'Front office 24/7. Ask for the manager on duty.', hazmat:'Asbestos survey on file' },
@@ -1384,7 +1389,7 @@ Object.assign(EXPLAIN, {
     ['spfx', 'The vendor picker warns before assigning a vendor whose insurance has expired. The app queues a reminder to Operations 30 days before it expires.'],
     ['info', '<b>Build cost:</b> small. Two columns and a library, no new flow.'] ], demo: IDEA_DEMO }),
   idea_landlord: () => ({ title:'Idea: owner vs. DGM responsibility', go:'OK', real:[
-    ['list', 'Adds Tenure, Owner covers (categories), and Owner contact columns to the Sites list.'],
+    ['list', 'Adds Tenure, Owner covers (categories), and Owner contact to a Maintenance-only <code>MaintenanceSiteInfo</code> list (one row per site). The shared Sites list doesn’t change.'],
     ['spfx', 'When a request falls under the owner’s responsibility (e.g. the roof at a leased site), the app shows who to call. Operations can mark it “Sent to owner.”'],
     ['info', '<b>Build cost:</b> small. Three columns, no flow.'] ], demo: IDEA_DEMO }),
   idea_fund: () => ({ title:'Idea: charge costs to a funding source', go:'OK', real:[
@@ -1400,7 +1405,7 @@ Object.assign(EXPLAIN, {
     ['info', 'Flags show on the request and the Overview. They help decide when to fix the underlying cause or replace something instead of repairing it again.'],
     ['info', '<b>Build cost:</b> small. No new data, just a calculation.'] ], demo: IDEA_DEMO }),
   idea_siteinfo: () => ({ title:'Idea: site emergency info', go:'OK', real:[
-    ['list', 'Adds Shutoff locations, Vendor access instructions, and Hazmat notes columns to the Sites list. Only Operations can edit them.'],
+    ['list', 'Adds Shutoff locations, Vendor access instructions, and Hazmat notes to the Maintenance-only <code>MaintenanceSiteInfo</code> list (one row per site). Only Operations can edit them.'],
     ['spfx', 'Shown on the request form’s emergency screen and on each request, so whoever is on site knows where the water shutoff is.'],
     ['lock', 'Door codes and alarm codes are never stored here.'],
     ['info', '<b>Build cost:</b> small. A few columns, no flow.'] ], demo: IDEA_DEMO }),
@@ -1456,7 +1461,7 @@ const TABS = [
   { id:'schedule',   label:'Schedule',         roles:MGR },
   { id:'compliance', label:'Compliance',       roles:MGR, opt:true, mod:'compliance' },
   { id:'assets',     label:'Equipment',        roles:MGR, opt:true, mod:'equipment' },
-  { id:'kitchens',   label:'Kitchens',         roles:MGR, opt:true, mod:'kitchens', show:() => scopeIds().some(id => SITE[id].kitchen) },
+  { id:'kitchens',   label:'Kitchens',         roles:MGR, opt:true, mod:'kitchens', show:() => scopeIds().some(id => hasKitchen(SITE[id])) },
   { id:'vendors',    label:'Vendors',          roles:['ops','admin'] },
   { id:'settings',   label:'Settings',         roles:['admin'] },
   { id:'help',       label:'Help',             roles:ALL },
@@ -1960,7 +1965,7 @@ function renderReport(){
   if (!allowed.length) return noSiteNotice();
   if (!allowed.includes(f.site)){ f.moved = SITE[f.site]?.name; f.site = allowed[0]; f.loc = ''; f.asset = ''; }
   const s = SITE[f.site], L = siteLocations(s), pri = formPri(f);
-  const cats = CATS.filter(c => (!c.kitchenOnly || s.kitchen) && (!c.types || c.types.includes(s.type)) && (!c.idea || ideasOn()) && !c.off);
+  const cats = CATS.filter(c => (!c.kitchenOnly || L.kitchen.length) && (!c.types || c.types.includes(s.type)) && (!c.idea || ideasOn()) && !c.off);
   const siteAssets = modOn('equipment') ? ASSETS.filter(a => a.site === f.site) : [];
   const yn = (key, val, label, danger) => `<button type="button" class="${danger ? 'danger' : ''}" aria-pressed="${f[key] === val}" onclick="state.form.${key}=${val};${key === 'danger' ? 'state.form.usable=null;' : ''}render()">${label}</button>`;
   const err = k => f.errors.includes(k) ? ' style="border-color:var(--warn)"' : '';
@@ -1990,7 +1995,7 @@ function renderReport(){
 
     <section class="form-sec"${err('cat')}><div class="form-sec-head"><span class="step-n">2</span><h2 class="form-sec-title">What kind of problem?</h2></div>
       <div class="cat-grid" role="group" aria-label="Category">${cats.map(c => `<button type="button" class="cat-btn" aria-pressed="${f.cat === c.id}" onclick="state.form.cat='${c.id}';render()">${ic(c.icon)}<span>${esc(c.label)}</span></button>`).join('')}</div>
-      ${s.kitchen ? '' : `<div class="field-hint" style="margin-top:8px">Kitchen equipment appears for sites with a full kitchen.</div>`}
+      ${L.kitchen.length ? '' : `<div class="field-hint" style="margin-top:8px">Kitchen equipment appears for sites that have a kitchen.</div>`}
       ${ideasOn() && f.cat === 'turnover' ? ideaNote('bed', `Unit turnover requests come with a make-ready checklist: ${TURNOVER_ITEMS.join(', ').toLowerCase()}.`, 'idea_turnover') : ''}
     </section>
     ${dupCheck(f)}
@@ -2256,7 +2261,7 @@ SETTINGS_VIEWS.people = () => {
            ['Costs and invoices', '—', 'Yes', 'Yes'], ['Internal notes', '—', 'Yes', 'Yes'], ['Linked incident report number', 'Their own requests', 'Yes', 'Yes'], ['Mark requests completed', 'No', 'Their sites', 'Yes'], ['Reopen within the window', 'Their own or followed', 'Their sites', 'Any time'], ['Settings', '—', '—', 'Admin only']]
           .map(([k, ...v]) => `<tr><td class="t-main">${k}</td>${v.map(x => `<td>${x === 'Yes' ? `<span class="pill p-good">${ic('check')}Yes</span>` : x === '—' ? '<span class="muted">Hidden</span>' : x}</td>`).join('')}</tr>`).join('')}
       </tbody></table></div>
-      <div class="note" style="margin-top:8px">${ic('lock')}<span>SharePoint can’t hide single columns, so costs, internal notes, and vendor contacts live in separate lists staff can’t read. A setup script also hides every list from site navigation and search, as with IR.</span></div></section>`;
+      <div class="note" style="margin-top:8px">${ic('lock')}<span>SharePoint can’t hide single columns, so costs, internal notes, and vendor contacts live in separate lists staff can’t read. A setup script also hides every list from site navigation and search.</span></div></section>`;
 };
 function editInIR(what){ act({ title:`Edit ${what} in Incident Reporting`, go:'OK', real:[['link', `Opens the IR app’s Configuration → ${what} in a new tab. It’s the one place this shared information is edited, and Maintenance picks up changes right away.`]] }); }
 
@@ -2264,13 +2269,13 @@ const STATUS_PILL = { Active:'p-good', Seasonal:'p-scheduled', 'Pending closure'
 SETTINGS_VIEWS.sites = () => {
   const cur = SITE[state.locSite] ? state.locSite : 'kiggins', s = SITE[cur], L = siteLocations(s);
   const chip = (x, kind) => `<span class="chip-x${L.off.has(x) ? ' off' : ''}">${esc(x)}<button type="button" aria-label="${L.off.has(x) ? 'Turn back on' : 'Turn off'} ${esc(x)}" onclick="toggleLoc('${cur}','${esc(x).replace(/'/g, '&#39;')}')">${ic(L.off.has(x) ? 'plus' : 'x')}</button></span>`;
-  return `${bn('<b>Sites</b> · name, status, PM and SPM are read from the IR <b>Sites</b> list (edited only in IR). Maintenance adds a <b>Kitchen</b> column there, and keeps its own <b>Locations</b> list (site lookup, name, type = common area or unit, order, active).')}
-    <section class="card"><div class="card-head"><div><h2 class="card-title">Sites</h2><div class="card-sub">Names, status, and managers come from the IR app. Kitchen is set here.</div></div>
+  return `${bn('<b>Sites</b> · name, status, PM and SPM are read from the IR <b>Sites</b> list (edited only in IR). Maintenance adds nothing to that list. It keeps its own <b>Locations</b> list (site lookup, name, type = common area, kitchen, or unit, order, active). A site with at least one active kitchen location is a kitchen site.')}
+    <section class="card"><div class="card-head"><div><h2 class="card-title">Sites</h2><div class="card-sub">Names, status, and managers come from the IR app. A site with a kitchen area (under Locations) is a kitchen site.</div></div>
       <button type="button" class="btn btn-sm" onclick="editInIR('Sites')">${ic('link')}Edit sites in Incident Reporting</button></div>
       <div class="table-wrap"><table class="table"><thead><tr><th>Site</th><th>Status</th><th>Kitchen</th><th class="num">Locations</th><th></th></tr></thead><tbody>
       ${SITES.map(x => { const l = siteLocations(x); return `<tr><td class="t-main">${esc(x.name)}<span class="sub">${esc(x.program || TYPE_LABEL[x.type])}</span></td>
         <td><span class="pill ${STATUS_PILL[siteStatus(x)]}">${siteStatus(x)}</span></td>
-        <td><label class="check"><input type="checkbox" ${x.kitchen ? 'checked' : ''} onchange="toggleKitchen('${x.id}',this)"> Full kitchen</label></td>
+        <td>${l.kitchen.length ? `<span class="pill p-good">${ic('check')}Yes</span>` : '<span class="muted">No</span>'}</td>
         <td class="num">${l.common.length + l.units.length}</td>
         <td><button type="button" class="btn btn-sm" onclick="state.locSite='${x.id}';render()">Locations</button></td></tr>`; }).join('')}</tbody></table></div>
       <div class="note" style="margin-top:8px">${ic('info')}<span><b>How status works:</b> Active, Seasonal, and Pending closure work normally. Coming soon allows only Operations and Admin to create requests (pre-opening work). Closed allows no new requests, and its history stays.</span></div></section>
@@ -2280,19 +2285,25 @@ SETTINGS_VIEWS.sites = () => {
       <div class="section-label" style="margin-bottom:6px">Common areas</div>
       <div class="btn-row" style="margin-bottom:8px">${L.allCommon.map(x => chip(x)).join('')}</div>
       <div class="btn-row"><input class="input mini-input" style="max-width:220px" id="newCommon" placeholder="e.g. Bike shed" aria-label="New common area"><button type="button" class="btn btn-sm" onclick="addCommon('${cur}')">${ic('plus')}Add common area</button></div>
+      <div class="section-label" style="margin:16px 0 6px">Kitchen areas</div>
+      ${L.allKitchen.length ? `<div class="btn-row" style="margin-bottom:8px">${L.allKitchen.map(x => chip(x)).join('')}</div>` : '<div class="card-sub" style="margin-bottom:8px">No kitchen here. Adding a kitchen area makes this a kitchen site: Kitchen equipment appears on its request form, and it shows on the Kitchens tab.</div>'}
+      <div class="btn-row"><input class="input mini-input" style="max-width:220px" id="newKitchen" placeholder="e.g. Kitchen — walk-ins" aria-label="New kitchen area"><button type="button" class="btn btn-sm" onclick="addKitchen('${cur}')">${ic('plus')}Add kitchen area</button></div>
       ${L.unitLabel ? `<div class="section-label" style="margin:16px 0 6px">${L.unitLabel} (${L.units.length})</div>
         <div class="btn-row" style="margin-bottom:8px">${L.allUnits.map(x => chip(x)).join('')}</div>
         <div class="btn-row"><span class="card-sub">Add in bulk:</span><input class="input mini-input" style="max-width:90px" id="uPre" value="${L.unitLabel === 'Pods' ? 'Pod' : L.unitLabel === 'Rooms' ? 'Room' : 'Unit'}" aria-label="Name"><input class="input mini-input" style="max-width:70px" id="uFrom" type="number" value="31" aria-label="From"><span class="card-sub">to</span><input class="input mini-input" style="max-width:70px" id="uTo" type="number" value="35" aria-label="To">
           <button type="button" class="btn btn-sm" onclick="addUnits('${cur}')">${ic('plus')}Add ${L.unitLabel.toLowerCase()}</button></div>` : `<div class="card-sub" style="margin-top:12px">This site has no units (pods, rooms, or apartments).</div>`}
     </section>`;
 };
-function toggleKitchen(id, el){ const s = SITE[id], on = el.checked;
-  act({ title:`${on ? 'Mark' : 'Unmark'} ${s.name} as having a full kitchen`, go:'Save', real:[['list', 'Sets the Maintenance <b>Kitchen</b> column on this site’s row in the shared Sites list. IR ignores this column.'], ['spfx', 'Kitchen sites get the Kitchen equipment category and appear on the Kitchens tab.']], toast:'Saved' },
-    () => { s.kitchen = on; recordSetting(`${s.name}: kitchen ${on ? 'on' : 'off'}`, () => { s.kitchen = !on; }); render(); });
-  el.checked = !on;
+function addKitchen(id){ const v = $('newKitchen').value.trim(); if (!v){ $('newKitchen').focus(); return; }
+  const first = !hasKitchen(SITE[id]);
+  act({ title:`Add kitchen area “${v}” at ${SITE[id].name}`, go:'Add', real:[['list', 'Adds a location with type <b>Kitchen</b> to the Maintenance <code>Locations</code> list. It’s on the request form right away.'],
+    ...(first ? [['spfx', 'It’s this site’s first kitchen area, so the site becomes a kitchen site: the Kitchen equipment category appears on its request form, and it shows on the Kitchens tab.']] : [])], toast:'Kitchen area added' },
+    () => { locEdits(id).kitchen.push(v); render(); });
 }
-function toggleLoc(id, name){ const e = locEdits(id), off = e.off.includes(name);
-  act({ title:`${off ? 'Turn on' : 'Turn off'} “${name}”`, go:'Save', real:[['list', `${off ? 'Turns the location back on' : 'Turns the location off'} in the <code>Locations</code> list. Past requests keep it, and ${off ? 'it’s back on the form' : 'it disappears from the form'}.`]], toast:'Saved' },
+function toggleLoc(id, name){ const e = locEdits(id), off = e.off.includes(name), L = siteLocations(SITE[id]), isK = L.allKitchen.includes(name);
+  const kNote = !isK ? [] : off && !L.kitchen.length ? [['spfx', 'This site becomes a kitchen site again: the Kitchen equipment category and the Kitchens tab include it.']]
+    : !off && L.kitchen.length === 1 ? [['spfx', 'It’s the last kitchen area here, so this stops being a kitchen site: the Kitchen equipment category leaves its request form, and it drops off the Kitchens tab. Past kitchen requests keep their history.']] : [];
+  act({ title:`${off ? 'Turn on' : 'Turn off'} “${name}”`, go:'Save', real:[['list', `${off ? 'Turns the location back on' : 'Turns the location off'} in the <code>Locations</code> list. Past requests keep it, and ${off ? 'it’s back on the form' : 'it disappears from the form'}.`], ...kNote], toast:'Saved' },
     () => { e.off = off ? e.off.filter(x => x !== name) : [...e.off, name]; render(); });
 }
 function addCommon(id){ const v = $('newCommon').value.trim(); if (!v){ $('newCommon').focus(); return; }
@@ -2846,18 +2857,18 @@ function logMiles(tag){ explain('logMiles', {}, () => { ASSET[tag].miles += 120;
 
 /* ════════════════════════ OPTIONAL: KITCHENS ════════════════════════ */
 function renderKitchens(){
-  const ks = SITES.filter(s => s.kitchen && inScope(s.id));
+  const ks = SITES.filter(s => hasKitchen(s) && inScope(s.id));
   return `<div class="page">
     <div class="page-head"><div><h1 class="page-title">Kitchens ${optBadge()}</h1><div class="page-sub">Equipment, repairs, and compliance dates for the sites with full kitchens.</div></div>${scopeChip()}</div>
-    ${bn('<b>Kitchens</b> is a view, not new data: Assets + ComplianceItems + MaintenanceRequests filtered to sites where <b>Kitchen = Yes</b> (a new column on the Sites list).')}
+    ${bn('<b>Kitchens</b> is a view, not new data: Assets + ComplianceItems + MaintenanceRequests filtered to kitchen sites (those with at least one active <b>Kitchen</b> location in the Maintenance <b>Locations</b> list).')}
     <div class="grid">${ks.map(s => {
       const eq = ASSETS.filter(a => a.site === s.id && a.cat === 'kitchen');
       const comp = COMPLIANCE.filter(c => c.site === s.id && c.cat === 'kitchen').sort((a, b) => d(a.due) - d(b.due));
-      const reqs = REQUESTS.filter(r => r.site === s.id && (r.cat === 'kitchen' || /^Kitchen/.test(r.loc)) && OPEN.includes(r.status) && (optOn() || r.src === 'request'));
+      const kl = siteLocations(s).allKitchen, reqs = REQUESTS.filter(r => r.site === s.id && (r.cat === 'kitchen' || kl.includes(r.loc)) && OPEN.includes(r.status) && (optOn() || r.src === 'request'));
       const issues = eq.filter(a => a.status !== 'In service').length;
       return `<section class="card">
         <div class="card-head"><div><h2 class="card-title" style="font-size:16px">${esc(s.name)}</h2><div class="card-sub">PM ${esc(s.pm)} · ${issues ? `<span class="late">${issues} item${issues === 1 ? '' : 's'} need${issues === 1 ? 's' : ''} repair</span>` : 'All equipment in service'} · ${reqs.length} open kitchen request${reqs.length === 1 ? '' : 's'}</div></div>
-          <button type="button" class="btn btn-sm btn-primary" onclick="state.form={...newForm(),site:'${s.id}',loc:'Kitchen',cat:'kitchen'};go('report')">${ic('plus')}Report a kitchen problem</button></div>
+          <button type="button" class="btn btn-sm btn-primary" onclick="state.form={...newForm(),site:'${s.id}',loc:'${esc(siteLocations(s).kitchen[0] || '').replace(/'/g, '&#39;')}',cat:'kitchen'};go('report')">${ic('plus')}Report a kitchen problem</button></div>
         <div class="section-label" style="margin-bottom:8px">Equipment</div>
         <div class="eq-grid">${eq.map(a => `<button type="button" class="eq ${a.status === 'Out of service' ? 'is-out' : a.status === 'Needs repair' ? 'is-repair' : ''}" onclick="openAsset('${a.tag}')">
           <div class="eq-name">${esc(a.name)}</div><div class="eq-state"><i class="dot ${a.status === 'In service' ? 'd-good' : a.status === 'Needs repair' ? 'd-amber' : 'd-warn'}"></i>${a.status}</div>
@@ -2910,8 +2921,8 @@ const siteStatus = s => s.status || 'Active';
 const MODS = { compliance:true, recurring:true, equipment:true, kitchens:true };
 const modOn = k => optOn() && MODS[k];
 const WAIT_REASONS = ['Parts on order','Waiting on a quote','Vendor availability','Owner or landlord','Weather'];
-const LOC_EDITS = {};   // site → { common:[], units:[], off:[] }  (Maintenance Locations list)
-const locEdits = id => (LOC_EDITS[id] ||= { common:[], units:[], off:[] });
+const LOC_EDITS = {};   // site → { common:[], kitchen:[], units:[], off:[] }  (Maintenance Locations list)
+const locEdits = id => (LOC_EDITS[id] ||= { common:[], kitchen:[], units:[], off:[] });
 const ANNOUNCE = { on:true, site:'kiggins', until:'2026-09-24',
   text:'Hygiene trailer: no hot water until the water heater is repaired (expected Tue evening). Residents can use the day center showers at 82nd.' };
 const FORM_TEXT = {
